@@ -1,0 +1,113 @@
+{
+  "template": false,
+  "schema_version": "object_track_gt_v1",
+  "gt_dataset_id": "DJI_0482_gate3a_140_200_v1",
+  "dataset_status": "draft",
+  "pilot": {
+    "minimum_duration_seconds": 30.0,
+    "maximum_duration_seconds": 60.0,
+    "selection_status": "selected",
+    "selection_criteria": [
+      "continuous_interval",
+      "contains_reviewable_pedestrian_vehicle_interaction",
+      "selected_from_original_video_before_auto_overlay_review"
+    ],
+    "selection_rationale": "User-approved blind GT pilot nominal interval [140.000000, 200.000000) seconds; canonical included source frames are 4196 through 5994 inclusive. actual_duration_seconds is the first-to-last included-frame PTS span (59.993267 seconds), distinct from the nominal interval duration (60.000000 seconds).",
+    "evaluation_start_frame_index": 4196,
+    "evaluation_end_frame_index": 5994,
+    "evaluation_start_timestamp_seconds": 140.006533,
+    "evaluation_end_timestamp_seconds": 199.9998,
+    "actual_duration_seconds": 59.993267
+  },
+  "video": {
+    "video_id": "DJI_0482",
+    "relative_path": "data/raw/before/DJI_0482.MP4",
+    "sha256": "168c20eede240300371aff34a53d2617a4f1f5fe8b2dad37f16016c016c39cf0",
+    "width_pixels": 3840,
+    "height_pixels": 2160,
+    "source_fps": 29.97002997002997,
+    "source_frame_count": 8721,
+    "coordinate_system": "source_pixel",
+    "position_unit": "px"
+  },
+  "sampling": {
+    "frame_index_origin": 0,
+    "frame_step": 2,
+    "evaluation_fps": 14.985014985014985,
+    "timestamp_rule": "frame_index / source_fps"
+  },
+  "scope": {
+    "object_classes": [
+      "person",
+      "bicycle",
+      "car",
+      "motorcycle",
+      "bus",
+      "truck"
+    ],
+    "in_scope_regions": [
+      "full_frame"
+    ],
+    "region_definition_path": null,
+    "region_definition_sha256": null,
+    "interaction_pair_gt_purpose": "observation_denominator_only"
+  },
+  "annotation": {
+    "protocol_path": "docs/validation/OBJECT_TRACK_GT_PROTOCOL.md",
+    "blind_original_video_first": true,
+    "observation_methods": [
+      "manual",
+      "interpolated"
+    ],
+    "visibility_statuses": [
+      "visible",
+      "partially_occluded",
+      "fully_occluded",
+      "not_observable"
+    ],
+    "denominator_excluded_visibility_statuses": [
+      "fully_occluded",
+      "not_observable"
+    ],
+    "reviewers": [
+      "R01"
+    ],
+    "adjudicator": null,
+    "created_at_utc": "2026-08-10T07:05:40Z",
+    "updated_at_utc": "2026-08-10T07:05:40Z"
+  },
+  "automatic_run_lineage": {
+    "evaluation_run_id": null,
+    "git_commit": null,
+    "config_path": null,
+    "config_sha256": null,
+    "model_weights_path": null,
+    "model_weights_sha256": null,
+    "raw_tracker": {
+      "artifact_path": null,
+      "artifact_sha256": null,
+      "summary_path": null,
+      "summary_sha256": null
+    },
+    "filtered": {
+      "artifact_path": null,
+      "artifact_sha256": null,
+      "summary_path": null,
+      "summary_sha256": null
+    },
+    "merged": {
+      "artifact_path": null,
+      "artifact_sha256": null,
+      "report_path": null,
+      "report_sha256": null
+    }
+  },
+  "files": {
+    "objects": "gt_objects.csv",
+    "visibility_intervals": "gt_visibility_intervals.csv",
+    "observations": "gt_observations.csv",
+    "track_associations": "gt_track_associations.csv",
+    "interaction_pairs": "gt_interaction_pairs.csv",
+    "auto_track_audit": "auto_track_audit.csv"
+  }
+}

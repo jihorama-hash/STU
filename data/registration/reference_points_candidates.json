@@ -1,0 +1,104 @@
+{
+  "clip_id": "DJI_0481",
+  "frame_id": 2848,
+  "grid_rows": 3,
+  "grid_cols": 3,
+  "candidates": [
+    {
+      "id": 1,
+      "x_px": 3480.0,
+      "y_px": 2027.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.022027
+    },
+    {
+      "id": 2,
+      "x_px": 3343.0,
+      "y_px": 1878.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.020339
+    },
+    {
+      "id": 3,
+      "x_px": 2966.0,
+      "y_px": 1633.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.019889
+    },
+    {
+      "id": 4,
+      "x_px": 2431.0,
+      "y_px": 1843.0,
+      "grid_row": 2,
+      "grid_col": 1,
+      "score": 0.017379
+    },
+    {
+      "id": 5,
+      "x_px": 1231.0,
+      "y_px": 229.0,
+      "grid_row": 0,
+      "grid_col": 0,
+      "score": 0.016973
+    },
+    {
+      "id": 6,
+      "x_px": 1422.0,
+      "y_px": 213.0,
+      "grid_row": 0,
+      "grid_col": 1,
+      "score": 0.016147
+    },
+    {
+      "id": 7,
+      "x_px": 1976.0,
+      "y_px": 996.0,
+      "grid_row": 1,
+      "grid_col": 1,
+      "score": 0.014853
+    },
+    {
+      "id": 8,
+      "x_px": 3301.0,
+      "y_px": 1854.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.014678
+    },
+    {
+      "id": 9,
+      "x_px": 3228.0,
+      "y_px": 1207.0,
+      "grid_row": 1,
+      "grid_col": 2,
+      "score": 0.013582
+    },
+    {
+      "id": 10,
+      "x_px": 845.0,
+      "y_px": 2017.0,
+      "grid_row": 2,
+      "grid_col": 0,
+      "score": 0.013119
+    },
+    {
+      "id": 11,
+      "x_px": 3085.0,
+      "y_px": 356.0,
+      "grid_row": 0,
+      "grid_col": 2,
+      "score": 0.01179
+    },
+    {
+      "id": 12,
+      "x_px": 244.0,
+      "y_px": 731.0,
+      "grid_row": 1,
+      "grid_col": 0,
+      "score": 0.009249
+    }
+  ]
+}

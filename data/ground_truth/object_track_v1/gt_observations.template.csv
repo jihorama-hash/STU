@@ -1,0 +1,1 @@
+schema_version,gt_dataset_id,video_id,gt_object_id,frame_index,timestamp_seconds,object_class,x1,y1,x2,y2,foot_x,foot_y,coordinate_system,position_unit,visibility_status,observation_method,interpolation_span_frames,in_scope,reviewer,review_status,review_timestamp_utc,notes

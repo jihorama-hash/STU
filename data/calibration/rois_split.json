@@ -1,0 +1,274 @@
+{
+  "source": "/home/jiho/ST_Roundabout/runs/DJI_0481_sahi_step10/conflict_zones.json",
+  "roundabout_center_px": [
+    1870.0,
+    960.0
+  ],
+  "note": "entry=회전부로 진입하는 차량측 절반, exit=회전부에서 진출하는 차량측 절반. 라벨은 DJI_0482 10fps 차량 궤적의 이동방향 다수결로 자동 판별.",
+  "zones": [
+    {
+      "id": "crosswalk_northwest_entry",
+      "name": "Northwest diagonal crosswalk (진입측)",
+      "polygon": [
+        [
+          1617.0,
+          215.0
+        ],
+        [
+          1890.0,
+          241.0
+        ],
+        [
+          1268.8,
+          634.8
+        ],
+        [
+          1180.4,
+          496.3
+        ]
+      ],
+      "side": "entry",
+      "parent": "crosswalk_northwest",
+      "label_votes": {
+        "toward_center": 1,
+        "away_from_center": 1
+      }
+    },
+    {
+      "id": "crosswalk_northwest_exit",
+      "name": "Northwest diagonal crosswalk (진출측)",
+      "polygon": [
+        [
+          1180.4,
+          496.3
+        ],
+        [
+          1268.8,
+          634.8
+        ],
+        [
+          729.0,
+          977.0
+        ],
+        [
+          712.0,
+          798.0
+        ]
+      ],
+      "side": "exit",
+      "parent": "crosswalk_northwest",
+      "label_votes": {
+        "toward_center": 1,
+        "away_from_center": 0
+      }
+    },
+    {
+      "id": "crosswalk_southwest_exit",
+      "name": "Southwest diagonal crosswalk (진출측)",
+      "polygon": [
+        [
+          732.0,
+          965.0
+        ],
+        [
+          1166.6,
+          1359.0
+        ],
+        [
+          1050.1,
+          1486.8
+        ],
+        [
+          679.0,
+          1142.0
+        ]
+      ],
+      "side": "exit",
+      "parent": "crosswalk_southwest",
+      "label_votes": {
+        "toward_center": 0,
+        "away_from_center": 14
+      }
+    },
+    {
+      "id": "crosswalk_southwest_entry",
+      "name": "Southwest diagonal crosswalk (진입측)",
+      "polygon": [
+        [
+          1166.6,
+          1359.0
+        ],
+        [
+          1536.0,
+          1694.0
+        ],
+        [
+          1356.0,
+          1771.0
+        ],
+        [
+          1050.1,
+          1486.8
+        ]
+      ],
+      "side": "entry",
+      "parent": "crosswalk_southwest",
+      "label_votes": {
+        "toward_center": 10,
+        "away_from_center": 0
+      }
+    },
+    {
+      "id": "crosswalk_east_entry",
+      "name": "East crosswalk (진입측)",
+      "polygon": [
+        [
+          3158.0,
+          1438.0
+        ],
+        [
+          3307.0,
+          1510.0
+        ],
+        [
+          3200.5,
+          1618.0
+        ],
+        [
+          3046.5,
+          1553.0
+        ]
+      ],
+      "side": "entry",
+      "parent": "crosswalk_east",
+      "label_votes": {
+        "toward_center": 10,
+        "away_from_center": 0
+      }
+    },
+    {
+      "id": "crosswalk_east_exit",
+      "name": "East crosswalk (진출측)",
+      "polygon": [
+        [
+          3046.5,
+          1553.0
+        ],
+        [
+          3200.5,
+          1618.0
+        ],
+        [
+          3094.0,
+          1726.0
+        ],
+        [
+          2935.0,
+          1668.0
+        ]
+      ],
+      "side": "exit",
+      "parent": "crosswalk_east",
+      "label_votes": {
+        "toward_center": 1,
+        "away_from_center": 8
+      }
+    },
+    {
+      "id": "roundabout_entry_west",
+      "name": "West roundabout entry conflict area",
+      "polygon": [
+        [
+          1145,
+          746
+        ],
+        [
+          1562,
+          1159
+        ],
+        [
+          1181,
+          1368
+        ],
+        [
+          809,
+          1037
+        ]
+      ],
+      "side": null,
+      "parent": null
+    },
+    {
+      "id": "roundabout_entry_south",
+      "name": "South roundabout entry conflict area",
+      "polygon": [
+        [
+          1608,
+          1210
+        ],
+        [
+          2071,
+          1546
+        ],
+        [
+          1536,
+          1694
+        ],
+        [
+          1234,
+          1418
+        ]
+      ],
+      "side": null,
+      "parent": null
+    },
+    {
+      "id": "roundabout_entry_east",
+      "name": "East roundabout entry conflict area",
+      "polygon": [
+        [
+          2146,
+          1001
+        ],
+        [
+          2683,
+          874
+        ],
+        [
+          3091,
+          1284
+        ],
+        [
+          2558,
+          1260
+        ]
+      ],
+      "side": null,
+      "parent": null
+    },
+    {
+      "id": "roundabout_entry_north",
+      "name": "North roundabout entry conflict area",
+      "polygon": [
+        [
+          1445,
+          554
+        ],
+        [
+          2038,
+          432
+        ],
+        [
+          2652,
+          701
+        ],
+        [
+          1836,
+          751
+        ]
+      ],
+      "side": null,
+      "parent": null
+    }
+  ]
+}

@@ -1,0 +1,370 @@
+{
+  "ids": [
+    1,
+    7,
+    8,
+    9,
+    11,
+    201,
+    202,
+    203,
+    204,
+    205
+  ],
+  "kept_ids": [
+    1,
+    7,
+    8,
+    9,
+    11
+  ],
+  "manual_ids": [
+    201,
+    202,
+    203,
+    204,
+    205
+  ],
+  "points": [
+    {
+      "id": 1,
+      "grid_cell": [
+        2,
+        2
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9856376417477926,
+          "ncc_min": 0.9674791097640991,
+          "resid_mean": 1.1762768654028575,
+          "resid_p95": 3.0458078384399414,
+          "inlier_rate": 0.8766666666666667,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 125.67998562554759
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.9577013166745504,
+          "ncc_min": 0.9373816251754761,
+          "resid_mean": 1.4717599267760912,
+          "resid_p95": 3.119617462158203,
+          "inlier_rate": 0.7233333333333334,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 121.08082330430132
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 7,
+      "grid_cell": [
+        1,
+        1
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.958600352803866,
+          "ncc_min": 0.9088060855865479,
+          "resid_mean": 0.8146488336473703,
+          "resid_p95": 1.3569157719612122,
+          "inlier_rate": 0.9966666666666667,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 179.2622474036113
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.9307926281293233,
+          "ncc_min": 0.8916935324668884,
+          "resid_mean": 0.5900414532795548,
+          "resid_p95": 1.1062684059143066,
+          "inlier_rate": 1.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 103.5857327349296
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 8,
+      "grid_cell": [
+        2,
+        2
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9635044461488724,
+          "ncc_min": 0.9190689921379089,
+          "resid_mean": 1.1785207185149194,
+          "resid_p95": 1.8210102558136003,
+          "inlier_rate": 0.95,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 9.01926317446419
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.9131470688184102,
+          "ncc_min": 0.8979244232177734,
+          "resid_mean": 1.7491136503219604,
+          "resid_p95": 3.3219387531280518,
+          "inlier_rate": 0.7966666666666666,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 55.260240425444515
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 9,
+      "grid_cell": [
+        1,
+        2
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9831081849336624,
+          "ncc_min": 0.9656655788421631,
+          "resid_mean": 0.46609552106509605,
+          "resid_p95": 0.8870178610086441,
+          "inlier_rate": 1.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 45.314474571349805
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.97409687936306,
+          "ncc_min": 0.9547025561332703,
+          "resid_mean": 0.6998747077956796,
+          "resid_p95": 1.0668258965015414,
+          "inlier_rate": 1.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 70.69649439111177
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 11,
+      "grid_cell": [
+        0,
+        2
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9822813608249028,
+          "ncc_min": 0.9603539109230042,
+          "resid_mean": 1.34540179113547,
+          "resid_p95": 2.1859131813049317,
+          "inlier_rate": 1.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 168.94650652659357
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.9784804544846217,
+          "ncc_min": 0.9636445641517639,
+          "resid_mean": 1.7810730117559432,
+          "resid_p95": 2.387659788131714,
+          "inlier_rate": 0.9766666666666667,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 177.5563121184351
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 201,
+      "grid_cell": [
+        0,
+        0
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9093801939487457,
+          "ncc_min": 0.8512988090515137,
+          "resid_mean": 10.894515465299289,
+          "resid_p95": 16.938398551940917,
+          "inlier_rate": 0.3333333333333333,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 137.97386017503123
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.909594854315122,
+          "ncc_min": 0.850217878818512,
+          "resid_mean": 15.114507153828939,
+          "resid_p95": 17.15849609375,
+          "inlier_rate": 0.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 131.73975186071175
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 202,
+      "grid_cell": [
+        0,
+        1
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9935140109062195,
+          "ncc_min": 0.9830976724624634,
+          "resid_mean": 1.538091444025437,
+          "resid_p95": 2.0622705698013304,
+          "inlier_rate": 0.98,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 23.95840407653183
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.991797460714976,
+          "ncc_min": 0.9813700914382935,
+          "resid_mean": 1.8706424689292909,
+          "resid_p95": 3.9397189617156982,
+          "inlier_rate": 0.9266666666666666,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 11.356820847933964
+        }
+      },
+      "direction_flag": true
+    },
+    {
+      "id": 203,
+      "grid_cell": [
+        1,
+        0
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.7666368389129639,
+          "ncc_min": 0.4210081994533539,
+          "resid_mean": 10.195652556866408,
+          "resid_p95": 16.28062381744385,
+          "inlier_rate": 0.33666666666666667,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 0.5815818369228993
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.7034539306163787,
+          "ncc_min": 0.4726097285747528,
+          "resid_mean": 15.286718120574951,
+          "resid_p95": 21.58060073852539,
+          "inlier_rate": 0.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 12.021382279890005
+        }
+      },
+      "direction_flag": true
+    },
+    {
+      "id": 204,
+      "grid_cell": [
+        2,
+        0
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.8538940884669621,
+          "ncc_min": 0.1445789337158203,
+          "resid_mean": 14.459375874797503,
+          "resid_p95": 21.88665199279785,
+          "inlier_rate": 0.32666666666666666,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 18.859086939356917
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.5980311985810598,
+          "ncc_min": 0.2265772670507431,
+          "resid_mean": 17.680437377293906,
+          "resid_p95": 21.99330005645752,
+          "inlier_rate": 0.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 31.455603156648014
+        }
+      },
+      "direction_flag": false
+    },
+    {
+      "id": 205,
+      "grid_cell": [
+        2,
+        1
+      ],
+      "per_clip": {
+        "DJI_0481": {
+          "ncc_mean": 0.9451399101813635,
+          "ncc_min": 0.8836036324501038,
+          "resid_mean": 4.59114632209142,
+          "resid_p95": 6.9760260581970215,
+          "inlier_rate": 0.32666666666666666,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 1.9794158203039756
+        },
+        "DJI_0482": {
+          "ncc_mean": 0.9147308850288391,
+          "ncc_min": 0.8770909309387207,
+          "resid_mean": 6.100380987326304,
+          "resid_p95": 7.734246921539307,
+          "inlier_rate": 0.0,
+          "n_frames": 300,
+          "angle_vs_radial_deg": 3.507549777300812
+        }
+      },
+      "direction_flag": true
+    }
+  ],
+  "frame_level": {
+    "DJI_0481": {
+      "n_total": 300,
+      "n_fail": 32,
+      "fail_rate_pct": 10.67,
+      "fail_runs": {
+        "n": 11,
+        "lengths": [
+          2,
+          1,
+          3,
+          10,
+          1,
+          8,
+          2,
+          1,
+          2,
+          1,
+          1
+        ],
+        "max": 10,
+        "mean": 2.909090909090909
+      }
+    },
+    "DJI_0482": {
+      "n_total": 300,
+      "n_fail": 173,
+      "fail_rate_pct": 57.67,
+      "fail_runs": {
+        "n": 23,
+        "lengths": [
+          1,
+          4,
+          1,
+          1,
+          4,
+          1,
+          1,
+          16,
+          11,
+          9,
+          17,
+          11,
+          28,
+          1,
+          4,
+          2,
+          6,
+          3,
+          10,
+          13,
+          6,
+          8,
+          15
+        ],
+        "max": 28,
+        "mean": 7.521739130434782
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Core dependencies actually imported across src/*.py
+opencv-python
+numpy
+pandas
+openpyxl
+ultralytics
+sahi
+supervision<0.30  # 0.30 removes ByteTrack (deprecated since 0.28), used by src/29_sahi_bytetrack_pipeline.py
+
+# torch / torchvision are intentionally excluded - install the CUDA 13.2 wheel
+# matching this workstation's driver BEFORE this file, not after.
+#
+# ultralytics and sahi both list torch/torchvision as dependencies. If they are
+# not already installed when this file runs, pip will silently pull in a
+# generic PyPI build instead of the CUDA 13.2 wheel. Once a satisfying torch is
+# already present, pip leaves it alone - so the order below is required, not optional:
+#
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132
+#   pip install -r requirements.txt

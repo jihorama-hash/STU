@@ -1,0 +1,54 @@
+{
+  "reference": "DJI_0481",
+  "exclusion_origin": "DJI_0482",
+  "videos": {
+    "DJI_0481": {
+      "roadway_mask": "DJI_0481_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0481_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4198456,
+      "vehicle_exclusion_pixels": 15713
+    },
+    "DJI_0482": {
+      "roadway_mask": "DJI_0482_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0482_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4169440,
+      "vehicle_exclusion_pixels": 15522
+    },
+    "DJI_0483_Cut": {
+      "roadway_mask": "DJI_0483_Cut_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0483_Cut_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4244752,
+      "vehicle_exclusion_pixels": 15723
+    },
+    "DJI_0484": {
+      "roadway_mask": "DJI_0484_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0484_vehicle_exclusion_mask.png",
+      "roadway_pixels": 3942306,
+      "vehicle_exclusion_pixels": 14639
+    },
+    "DJI_0485": {
+      "roadway_mask": "DJI_0485_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0485_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4048041,
+      "vehicle_exclusion_pixels": 14884
+    },
+    "DJI_0486": {
+      "roadway_mask": "DJI_0486_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0486_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4109887,
+      "vehicle_exclusion_pixels": 15121
+    },
+    "DJI_0487": {
+      "roadway_mask": "DJI_0487_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0487_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4041009,
+      "vehicle_exclusion_pixels": 12867
+    },
+    "DJI_0488": {
+      "roadway_mask": "DJI_0488_roadway_mask.png",
+      "vehicle_exclusion_mask": "DJI_0488_vehicle_exclusion_mask.png",
+      "roadway_pixels": 4253710,
+      "vehicle_exclusion_pixels": 9698
+    }
+  }
+}

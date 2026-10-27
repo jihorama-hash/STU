@@ -1,0 +1,1 @@
+schema_version,gt_dataset_id,video_id,gt_object_id,visibility_interval_id,start_frame_index,end_frame_index,start_timestamp_seconds,end_timestamp_seconds,visibility_status,in_scope,denominator_eligible,occlusion_reason,annotation_method,reviewer,review_status,review_timestamp_utc,notes

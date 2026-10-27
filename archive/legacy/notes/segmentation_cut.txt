@@ -1,0 +1,1 @@
+C:\ffmpeg\bin\ffmpeg.exe -ss 00:00:00 -to 00:02:37 -i record/DJI_0483.mp4 -c copy record/DJI_0483_Cut.mp4

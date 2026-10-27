@@ -1,0 +1,28 @@
+{
+  "generated_by": "src/39_register_frames.py:propose_points",
+  "inputs": {
+    "reference_frame": "calib/reference_frame.png",
+    "detections_csv": "runs/before_l_mt09/DJI_0481/detections_pixel.csv",
+    "params_yaml": "docs/무신호횡단보도_파라미터_v02.yaml",
+    "params_yaml_keys_used": [
+      "registration.reference_point_detection.grid_rows",
+      "registration.reference_point_detection.grid_cols",
+      "registration.reference_point_detection.candidates_to_present"
+    ],
+    "clips_yaml_keys_used": [
+      "site.registration_ref"
+    ]
+  },
+  "clip_id": "DJI_0481",
+  "frame_id": 2848,
+  "candidate_generation_tuning_note": "MAX_CORNERS/QUALITY_LEVEL/MIN_DISTANCE_PX/BLOCK_SIZE/VEG_HSV_*/MASK_WINDOW_FRAMES는 파라미터 규칙 1의 예외(후보 생성 전용, 최종 결과 미영향). 스크립트 상단 CANDIDATE GENERATION TUNING 블록 참고.",
+  "dynamic_mask_window_frames": 300,
+  "dynamic_mask_pct": 15.29,
+  "vegetation_mask_pct": 23.172,
+  "empty_grid_cells": [],
+  "n_candidates_presented": 12,
+  "outputs": [
+    "registration/reference_points_candidates.json",
+    "registration/reference_points_preview.png"
+  ]
+}

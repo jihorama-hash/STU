@@ -1,0 +1,6 @@
+sample_no,track_id,class,start_sec,end_sec,points,continuation_candidate_ids,continuation_count,image,source_note
+1,1271,person,225.22,247.65,208,1406,1,sample_03_track_1271.jpg,manual sheet person
+2,1169,motorcycle,207.51,229.73,175,1166;1303,2,sample_04_track_1169.jpg,legacy 1169 and 1166 corrected and merged as one motorcycle
+3,1448,person,257.56,276.88,193,1550,1,sample_06_track_1448.jpg,manual sheet person
+4,1364,person,238.14,251.75,99,1431;1433,2,sample_09_track_1364.jpg,manual sheet person
+5,1538,person,274.77,286.29,102,,0,sample_12_track_1538.jpg,manual sheet person

@@ -1,0 +1,46 @@
+{
+  "generated_by": "src/39_register_frames.py:propose_points_round2",
+  "kept_ids": [
+    1,
+    7,
+    8,
+    9,
+    11
+  ],
+  "removed_ids": [
+    2,
+    5,
+    6,
+    12,
+    13,
+    14
+  ],
+  "target_empty_cells": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      1
+    ]
+  ],
+  "still_empty_cells": [],
+  "n_candidates_presented": 15,
+  "outputs": [
+    "registration/reference_points_candidates_round2.json",
+    "registration/reference_points_preview_round2.png"
+  ]
+}

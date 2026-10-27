@@ -1,0 +1,38 @@
+# raw video, references, generated outputs
+data/raw/
+data/demo_clips/
+data/clips/
+data/external/
+outputs/
+runs/
+output/
+references/
+work/
+
+# model files
+models/
+*.pt
+*.onnx
+*_openvino_model/
+
+# video files
+*.mp4
+*.MP4
+*.avi
+*.mov
+*.mkv
+
+# python cache / env
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# temporary / runtime
+*.tmp
+~$*.xlsx
+~$*.docx
+.streamlit/
+.runtime/
+*:Zone.Identifier
+calib/*_preview.jpg

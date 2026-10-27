@@ -1,0 +1,2 @@
+video_id,start_seconds,end_seconds,duration_seconds,person_samples,vehicle_samples,continuation_samples,selection_status
+DJI_0482,150.0,210.0,60.0,8,8,5,selected

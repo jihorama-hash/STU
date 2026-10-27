@@ -1,0 +1,407 @@
+# ---------------------------------------------------------------------------
+# 무신호 횡단보도 안전성 진단 — 파라미터 레지스트리 v0.1
+# 작성일 2026-08-09
+# 상위 문서 : 무신호횡단보도_지표정의서_v03.md
+# 구현 문서 : 무신호횡단보도_구현사양서_v01.md
+#
+# 규칙
+#   1. 모든 상수는 이 파일에만 존재한다. 코드에 하드코딩 금지.
+#   2. 각 값에 evidence(근거등급 A/B/C)와 source 를 붙인다.
+#   3. 값을 바꾸면 version 을 올리고 changelog 에 사유를 적는다.
+#   4. sensitivity 목록이 있는 값은 민감도 분석 대상이다.
+#      baseline 만 쓰고 끝내면 안 된다.
+#   5. 결과가 좋아지는 방향으로 값을 조정하지 않는다.
+#
+# 근거등급  A: 문헌에 수치 명시 / B: 문헌 관행값, 출처마다 상이
+#           C: 본 과제 잠정값, 민감도 분석으로 확정 필요
+# ---------------------------------------------------------------------------
+
+meta:
+  version: "0.1"
+  spec_version: "v0.3"
+  created: "2026-08-09"
+  changelog:
+    - version: "0.1"
+      date: "2026-08-09"
+      note: "최초 작성. 지표정의서 v0.3 전환에 맞춰 상호작용·DPD 계열 신설"
+
+# ===========================================================================
+# 1. 좌표·전처리
+# ===========================================================================
+site:
+  hover_group_count: 1        # 8클립 전부 동일 호버링 위치 (2026-08-09 사용자 확인)
+  shared_scale: true          # 스케일 계수 1개, ROI 1벌
+  note: >
+    동일 위치라는 조건은 캘리브레이션을 단순화하지만, 호버 표류(drift) 보정을
+    필수로 만든다. registration 블록 참조.
+
+registration:                 # V-A2 — 영상 정합
+  enabled: true
+  required_before_all: true   # 정합 없이는 어떤 산출도 하지 않는다
+  reference_points_min:
+    value: 6
+    evidence: C
+    note: "노면 고정 특징점만. 차량·보행자·그림자 사용 금지. 화면에 고르게 분포"
+  transform_model: similarity          # 평행이동+회전+스케일. 필요 시 homography
+  residual_tol_m:                      # V-A2 합격 기준
+    value: 0.05
+    unit: m
+    evidence: C
+    source: >
+      V-B 게이트(0.10 m)의 절반. 정합 오차가 궤적 오차 예산의 절반을
+      넘으면 안 된다. 4K/가로60m 기준 GSD 0.0156 m/px 에서 0.10 m = 6.4 px,
+      1 m 표류 = 64 px 이므로 정합 없이는 게이트 통과 불가.
+  report_before_after: true            # 정합 전/후 잔차를 모두 보고
+
+geometry:
+  scale_error_tol:            # V-A 합격 기준 (실측 대비 상대오차)
+    value: 0.03
+    unit: ratio
+    evidence: B
+    source: "지표정의서 v0.3 §1.1. 초과 시 4점 호모그래피 전환"
+  center_fraction:            # 렌즈왜곡 안전영역 (화면 중앙 비율)
+    value: 0.60
+    unit: ratio
+    evidence: C
+  stripe_period_m:            # 횡단보도 얼룩말무늬 1주기 (폭 0.45 + 간격 0.45)
+    value: 0.90
+    unit: m
+    evidence: A
+    source: "도로교통법 시행규칙 노면표시 규격"
+
+smoothing:
+  method: savgol
+  polyorder: 2
+  window_s:
+    value: 0.5
+    unit: s
+    evidence: C
+    sensitivity: [0.3, 0.5, 1.0]     # V-E2
+    source: "지표정의서 v0.3 §1.2. a5 가 이 값에 가장 민감"
+  min_track_frames: 5                # 이보다 짧으면 short_track=True, 평활화 생략
+  acceleration_basis: tangential     # |a| 가 아니라 진행방향 가감속을 쓴다
+
+# ===========================================================================
+# 2. 객체 클래스와 치수
+#    S_m 은 차폭에 직접 종속된다. 이 표가 지표를 좌우한다.
+# ===========================================================================
+classes:
+  vehicle_group: [car, car_light, bus, truck, motorcycle]
+  pedestrian_group: [pedestrian, bicycle, pm]
+  # bicycle / pm 은 mounted 여부에 따라 차량측이 될 수 있다 (구현사양서 §4.1)
+
+vehicle_width_m:               # W_v
+  evidence: C
+  source: "국내 대표 제원. 실측 아님. 민감도 ±0.2 m (V-E5)"
+  sensitivity_delta: 0.2
+  values:
+    car: 1.80
+    car_light: 1.60
+    bus: 2.50
+    truck: 2.35
+    motorcycle: 0.80
+    bicycle: 0.60
+    pm: 0.60
+
+vehicle_length_m:              # L_v — 차량 전면 위치 산출용
+  evidence: C
+  values:
+    car: 4.70
+    car_light: 3.60
+    bus: 11.00
+    truck: 6.50
+    motorcycle: 2.10
+    bicycle: 1.75
+    pm: 1.20
+
+pedestrian_size_m:             # w_p
+  value: 0.75
+  unit: m
+  evidence: B
+  sensitivity: [0.40, 0.50, 0.75]    # V-E1
+  source: "Neufert. 원 논문(Dąbkowski et al. 2025) 채택값 0.75×0.75"
+
+class_finalization:
+  method: confidence_weighted_majority
+  flicker_ratio_max:           # 초과 시 class_unstable=True
+    value: 0.20
+    evidence: C
+  cross_group_switch_unstable: true   # 보행자군↔차량군 전환 1회만 있어도 unstable
+
+pm_handling:
+  mounted_speed_threshold_ms:  # 이보다 빠르면 탑승으로 잠정 분류
+    value: 1.8
+    unit: m/s
+    evidence: C
+    source: "일반 보행속도 상한 근사. 오분류율을 육안 검증에서 보고할 것"
+
+# ===========================================================================
+# 3. 공간 기준요소
+# ===========================================================================
+regions:
+  cw_ext_margin_m:             # CW 를 좌우로 확장해 '횡단'으로 인정하는 범위
+    value: 1.0
+    unit: m
+    evidence: C
+  wz_depth_m:                  # 연석에서 후방 대기구역 깊이
+    value: 2.0
+    unit: m
+    evidence: C
+  approach_upstream_m: 30.0    # D30
+  approach_mid_m: 20.0         # D20
+  downstream_m: 10.0           # CW 하류 관측 범위
+  a5_length_m:                 # 감속도 산출구간 길이
+    value: 5.0
+    unit: m
+    evidence: A
+    source: "원 논문 a5 정의 (상류 5 m 최대 감속도)"
+  a5_min_frames:               # 이보다 적으면 a5_valid=False
+    value: 3
+    evidence: C
+  turn_heading_deg:            # 접근~통과 heading 변화가 이를 넘으면 turning=True
+    value: 30.0
+    evidence: C
+
+# ===========================================================================
+# 4. 군집 (group-pedestrian)
+#    NI(분모)를 직접 바꾸는 정의. 캠퍼스는 군집 비율이 높다.
+# ===========================================================================
+grouping:
+  enabled: true
+  run_both_modes: true         # group on/off 두 가지로 전 파이프라인 실행
+  distance_m:
+    value: 2.0
+    unit: m
+    evidence: C
+    sensitivity: [1.5, 2.0, 3.0]     # V-E3
+  heading_diff_deg:
+    value: 30.0
+    evidence: C
+  speed_diff_ms:
+    value: 0.3
+    unit: m/s
+    evidence: C
+  min_duration_s:
+    value: 1.0
+    unit: s
+    evidence: C
+  sm_reference:                # 군집의 S_m 기준 보행자
+    type_A: leading            # 차량이 앞을 지나면 최선두
+    type_B: trailing           # 뒤를 지나면 최후미
+    source: "claude/03_..._v01.md §6.3"
+
+# ===========================================================================
+# 5. DPD 계수 (Tier 0 — 폴란드 계수)
+#    K-DPD 재보정 시 이 블록만 교체한다.
+# ===========================================================================
+dpd_coefficients:
+  calibration_id: "PL_Dabkowski2025"
+  evidence: B
+  note: >
+    폴란드 응답자(전문가 약 10%, 나머지 학생) 130~136명의 인지위험 평정을
+    회귀한 계수. 인지위험이지 상해위험이 아니다. 절대값의 안전등급 해석과
+    폴란드 지점(Warsaw 6.05% / Wroclaw 3.99%)과의 직접 비교는 금지.
+    산출물 명칭은 반드시 "P-PDI (폴란드 계수 기준 참조값)".
+  A1:                          # 1/(1+exp(b1*S_m + b2*V_m + b0))
+    b1: 1.196
+    b2: -0.075
+    b0: -0.923
+    source: "원문 식(2)"
+  B1:
+    b1: 0.862
+    b2: -0.052
+    b0: 0.0
+    source: "원문 식(3), 절편 없음"
+  B2:                          # 1/(1+exp(b2*a5 + b0))
+    b2: 0.561
+    b0: 2.713
+    source: >
+      원문 식(4)는 계수 2개가 전치되어 있다(원문 표기 b2=2.713, b0=0.561).
+      근거 4건은 claude/03_PDI_DPD_검증_및_한국형PoC_v01.md §2.3.
+      본 프로젝트는 수정식을 채택한다. 변곡점 a5 = -4.84 m/s^2.
+  units:
+    S_m: m
+    V_m: m/s                   # km/h 를 넣으면 조용히 틀린다. assert 필수
+    a5: m/s^2                  # 감속은 음수
+
+# ===========================================================================
+# 6. 조우(E-1) 판정
+# ===========================================================================
+encounter:
+  perception_reaction_s:       # t_pr
+    value: 2.5
+    unit: s
+    evidence: A
+    source: "AASHTO 정지시거 설계값"
+    sensitivity: [1.5, 2.5]    # 1.5 s 병행 산출 필수 (근거등급 C)
+  deceleration_ms2:            # a
+    value: 3.4
+    unit: m/s^2
+    evidence: A
+    source: "AASHTO 정지시거 설계값"
+  intent_speed_ms:             # WZ 체류 중 연석 방향 접근속도 하한
+    value: 0.2
+    unit: m/s
+    evidence: C
+  intent_duration_s:           # 위 상태 지속 시 '횡단 의사 없음'
+    value: 3.0
+    unit: s
+    evidence: C
+    note: "연직 시점에서는 의사 판별이 어렵다. 오분류율을 Stage 2 에서 보고할 것"
+
+# ===========================================================================
+# 7. 준수도 판정
+# ===========================================================================
+compliance:
+  v_stop_ms:                   # 완전정지 속도 임계
+    value: 0.3
+    unit: m/s
+    evidence: C
+    sensitivity: [0.2, 0.3, 0.5]     # V-E4. SR 변동폭을 반드시 병기
+    source: >
+      문헌 표준값 없음. 궤적 지터로 인한 겉보기 속도 수준에 근거한 잠정값.
+      이 값 하나로 준수율 결론이 뒤집힐 수 있으므로 단일값 확정 보고 금지.
+  tau_stop_s:                  # 정지 지속시간 (법적 요건 아님, 계측 신뢰성용)
+    value: 0.5
+    unit: s
+    evidence: C
+    note: >
+      도로교통법상 '일시정지'는 완전 정지 사실만 요구하며 지속시간을
+      요구하지 않는다. 리포트에 그렇게 표기할 것.
+  v_yield_max_ms:              # 감속양보 최소속도 상한
+    value: 2.0
+    unit: m/s
+    evidence: C
+
+# ===========================================================================
+# 8. 보조 SSM 지표 (v0.3에서 강등 — 부록 배치)
+# ===========================================================================
+ssm_auxiliary:
+  enabled: true
+  report_section: appendix
+  pet_conflict_s:
+    value: 3.0
+    unit: s
+    evidence: A
+    source: "Chen et al.(2017), Sayed & Zein / Ni et al. 근거"
+  pet_severe_s:
+    value: 1.5
+    unit: s
+    evidence: B
+    source: "Tageldin & Sayed(2016). 환경 의존적, 양쪽 다 산출해 분포 확인"
+  rttc_conflict_s:
+    value: 3.0
+    unit: s
+    evidence: A
+  ttc_severe_s:
+    value: 1.5
+    unit: s
+    evidence: B
+  drac_threshold:
+    value: null
+    evidence: C
+    note: "임계 미확정. 분포만 보고한다"
+
+# ===========================================================================
+# 9. 검증 게이트
+# ===========================================================================
+validation:
+  stage1_gate:
+    scale_error_tol: 0.03              # V-A
+    registration_residual_tol_m: 0.05  # V-A2 (registration.residual_tol_m 과 동일)
+    speed_error_tol_kmh:               # V-D
+      value: 1.0
+      evidence: A
+      source: "원 논문 레이저 실측 대비 1 km/h 이내 실적"
+    position_rmse_tol_m:               # V-B, CW 구역 내
+      value: 0.10
+      evidence: A
+      source: >
+        원 논문 차량 궤적 평균 위치오차 10 cm 미만.
+        v0.2 의 0.3 m 기준으로는 DPD 가 0.15 이상 흔들려 지표가 성립하지 않는다.
+    recall_min: 0.95                   # V-B2
+    fp_rate_max: 0.05
+    sample_frames: 100                 # 8클립 균등 무작위
+    match_iou: 0.30
+  stage1_warning:                      # T-1, 게이트 아님. 경고 임계
+    frag_ratio_max: 0.30
+    gap_ratio_max: 0.10
+    class_flicker_rate_max: 0.05
+    id_switch_per_track_max: 0.1
+    overlap_dup_rate_max: 0.05
+  stage2:                              # 전건 육안
+    type_agreement_min: 0.90           # V-F
+    interaction_recall_min: 0.90       # V-G
+    sm_error_tol_m: 0.15               # V-C
+    vm_error_tol_kmh: 1.0
+    pet_error_tol_s: 0.2
+    sample_for_vc: 20
+    include_turning: false             # 이번 회차 회전부 제외
+
+# ===========================================================================
+# 10. 표본 수 판정
+# ===========================================================================
+sampling:
+  ratio_insufficient_below: 30         # 미만이면 숫자 보고 금지
+  ratio_trend_only_below: 100          # 미만이면 CI 병기 필수
+  ci_level: 0.95
+  pdi_min_survey_days:
+    value: 4
+    evidence: A
+    source: >
+      원 논문 민감도 분석. Warsaw 3일, Wroclaw 4일부터 상대표준오차 5% 미만.
+      저자 권고 최소 4일. 30분 단일 세션은 항상 REQUIRES_LONGER_OBS.
+  b2_invalid_warn_ratio: 0.05          # a5_valid=False 비율이 이를 넘으면 경고
+
+# ===========================================================================
+# 11. 보고 규약
+# ===========================================================================
+reporting:
+  pdi_label: "P-PDI (폴란드 계수 기준 참조값)"
+  forbid_single_composite_score: true  # 가중합 종합점수 금지 (지표정의서 §8.1)
+  pdi_mandatory_companions:            # PDI 보고 시 반드시 함께 내는 값
+    - NI
+    - type_composition
+    - mean_dpd_by_type
+    - safe_interaction_ratio
+  final_output_set:                    # 4종 병기. 통합 금지
+    - P_PDI_pct
+    - suppression_flag
+    - L1_noncompliance
+    - JDI_pct
+  status_codes:
+    - INSUFFICIENT_SAMPLE
+    - GATE_FAILED
+    - NOT_OBSERVABLE
+    - REQUIRES_FIELD_SURVEY
+    - REQUIRES_LONGER_OBS
+    - PENDING_VERIFICATION
+  null_not_zero: true                  # 판단 불가 지표는 0 이 아니라 null
+  fixed_disclaimers:
+    - "DPD 는 설문 기반 인지위험(perceived risk) 값이며 상해위험이 아니다. DPD 0.5 는 사망확률 50% 가 아니다."
+    - "본 관측은 30분 단일 세션이므로 P-PDI 절대값은 판단 불가이며, 절차 검증과 상대 비교에만 사용한다."
+    - "연직 시점 촬영으로 보행자 주시·스마트폰 사용(P-9·P-10)은 산출 불가하다."
+    - "회전 차량 상호작용은 PDI 적용 대상이 아니다."
+
+# ===========================================================================
+# 12. 미확정 — 값을 채우기 전에는 관련 지표를 산출하지 않는다
+# ===========================================================================
+pending:
+  - key: classes.vehicle_width_m
+    need: "국내 차종별 실측 차폭 조사"
+    blocks: "S_m 근거등급 C → B"
+  - key: dpd_coefficients
+    need: "K-DPD 한국 재보정 (설문)"
+    blocks: "PDI 절대값 해석"
+  - key: interaction_classification_tree
+    need: "원 논문 Figure 4 정밀 판독"
+    blocks: "A0/B0 경계 조건 확정 (근거등급 B → A)"
+  - key: clips_metadata
+    need: >
+      클립별 fps·실촬영시간·클립 간 공백. 그리고 고도·초점거리·화소피치
+      (또는 실측 기준거리로 s 를 직접 역산 — 이쪽이 더 정확하다).
+      위치 동일 여부는 2026-08-09 확인 완료(동일).
+    blocks: "시간당 환산 지표(X-1·X-2·X-4) 전부, 스케일 계수 확정"
+  - key: ssm_auxiliary.drac_threshold
+    need: "DRAC 임계값 결정법 문헌 확정"
+    blocks: "S-4 판정"

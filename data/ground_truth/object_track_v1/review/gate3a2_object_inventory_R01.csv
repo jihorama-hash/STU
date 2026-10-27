@@ -1,0 +1,51 @@
+﻿gt_object_id,object_class,first_visible_frame_index,last_visible_frame_index,in_scope,exclusion_reason,notes
+P001,person,4196,4238,TRUE,,present_at_window_start
+P002,person,4196,4792,TRUE,,present_at_window_start
+P003,person,4196,4792,TRUE,,present_at_window_start
+P004,person,4196,4978,TRUE,,present_at_window_start
+P005,person,4196,5852,TRUE,,present_at_window_start
+C001,car,4196,4768,TRUE,,present_at_window_start
+P006,person,4196,4950,TRUE,,present_at_window_start
+P007,person,4196,4522,TRUE,,present_at_window_start
+P008,person,4196,4450,TRUE,,present_at_window_start
+P009,person,4196,4450,TRUE,,present_at_window_start
+P010,person,4196,4862,TRUE,,"present_at_window_start, white parasol"
+P011,person,4196,4510,TRUE,,present_at_window_start
+P012,person,4196,4464,TRUE,,present_at_window_start
+P013,person,4250,4458,TRUE,,appear under tree
+C002,car,4320,4732,TRUE,,from NE
+P014,person,4356,4734,TRUE,,Black suit
+C003,car,4466,4996,TRUE,,"from SE, white"
+M001,motorcycle,4556,4850,TRUE,,from SW
+C004,car,4650,5256,TRUE,,"from SW, grey"
+P015,person,4546,5488,TRUE,,from North to West
+P016,person,4734,5200,TRUE,,from East
+P017,person,4734,5200,TRUE,,from East
+P018,person,4734,5216,TRUE,,from East
+C005,car,4890,5392,TRUE,,"from SE, Taxi"
+C006,car,4922,5460,TRUE,,"from SW, grey"
+C007,car,5016,5460,TRUE,,from NE
+C008,car,5072,5582,TRUE,,"from SW, black"
+C009,car,5096,5610,TRUE,,from NE
+M002,motorcycle,5638,5950,TRUE,,from SW
+P019,person,4776,5166,TRUE,,appeared under the tree
+P020,person,4864,5454,TRUE,,appeared under the tree
+P021,person,4864,5454,TRUE,,appeared under the tree
+P022,person,4880,5470,TRUE,,"from NE, with parasol"
+P023,person,4934,5994,TRUE,,"from North, present_at_window_end"
+P024,person,4934,5364,TRUE,,"appeared under the tree, to East "
+P025,person,5372,5810,TRUE,,with hat
+P026,person,5442,5918,TRUE,,"appear under tree, white shirt"
+P027,person,5474,5890,TRUE,,appeared under the tree
+P028,person,5484,5880,TRUE,,appeared under the tree
+P029,person,5562,5994,TRUE,,"appeared in the middel of NE lane, from North, present_at_window_end"
+P030,person,5612,5994,TRUE,,"with yellow vest, from North, present_at_window_end"
+P031,person,5644,5784,TRUE,,"with yellow vest, from North, present_at_window_end"
+M003,motorcycle,5676,5994,TRUE,,"from SE, from North, present_at_window_end"
+P032,person,5702,5994,TRUE,,"from East, from North, present_at_window_end"
+P033,person,5714,5994,TRUE,,"appeared under the tree, East CW, from North, present_at_window_end"
+P034,person,5722,5994,TRUE,,"appeared in the middel of NE lane, from North, present_at_window_end"
+P035,person,5760,5994,TRUE,,"appeared in the middel of NE lane, from North, present_at_window_end"
+P036,person,5800,5994,TRUE,,"from SE, from North, present_at_window_end"
+P037,person,5820,5994,TRUE,,"appeared under the tree, with parasol, from North, present_at_window_end"
+P038,person,5968,5994,TRUE,,"appear in the middel of NE lane, from North, present_at_window_end"

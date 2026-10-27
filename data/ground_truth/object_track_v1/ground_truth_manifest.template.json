@@ -1,0 +1,110 @@
+{
+  "template": true,
+  "schema_version": "object_track_gt_v1",
+  "gt_dataset_id": null,
+  "dataset_status": "template",
+  "pilot": {
+    "minimum_duration_seconds": 30.0,
+    "maximum_duration_seconds": 60.0,
+    "selection_status": "pending_video_review",
+    "selection_criteria": [
+      "continuous_interval",
+      "contains_reviewable_pedestrian_vehicle_interaction",
+      "selected_from_original_video_before_auto_overlay_review"
+    ],
+    "selection_rationale": null,
+    "evaluation_start_frame_index": null,
+    "evaluation_end_frame_index": null,
+    "evaluation_start_timestamp_seconds": null,
+    "evaluation_end_timestamp_seconds": null,
+    "actual_duration_seconds": null
+  },
+  "video": {
+    "video_id": null,
+    "relative_path": null,
+    "sha256": null,
+    "width_pixels": null,
+    "height_pixels": null,
+    "source_fps": null,
+    "source_frame_count": null,
+    "coordinate_system": "source_pixel",
+    "position_unit": "px"
+  },
+  "sampling": {
+    "frame_index_origin": 0,
+    "frame_step": null,
+    "evaluation_fps": null,
+    "timestamp_rule": "frame_index / source_fps"
+  },
+  "scope": {
+    "object_classes": [
+      "person",
+      "bicycle",
+      "motorcycle",
+      "car",
+      "bus",
+      "truck",
+      "tricycle"
+    ],
+    "in_scope_regions": null,
+    "region_definition_path": null,
+    "region_definition_sha256": null,
+    "interaction_pair_gt_purpose": "observation_denominator_only"
+  },
+  "annotation": {
+    "protocol_path": "docs/validation/OBJECT_TRACK_GT_PROTOCOL.md",
+    "blind_original_video_first": true,
+    "observation_methods": [
+      "manual",
+      "interpolated"
+    ],
+    "visibility_statuses": [
+      "visible",
+      "partially_occluded",
+      "fully_occluded",
+      "not_observable"
+    ],
+    "denominator_excluded_visibility_statuses": [
+      "fully_occluded",
+      "not_observable"
+    ],
+    "reviewers": [],
+    "adjudicator": null,
+    "created_at_utc": null,
+    "updated_at_utc": null
+  },
+  "automatic_run_lineage": {
+    "evaluation_run_id": null,
+    "git_commit": null,
+    "config_path": null,
+    "config_sha256": null,
+    "model_weights_path": null,
+    "model_weights_sha256": null,
+    "raw_tracker": {
+      "artifact_path": null,
+      "artifact_sha256": null,
+      "summary_path": null,
+      "summary_sha256": null
+    },
+    "filtered": {
+      "artifact_path": null,
+      "artifact_sha256": null,
+      "summary_path": null,
+      "summary_sha256": null
+    },
+    "merged": {
+      "artifact_path": null,
+      "artifact_sha256": null,
+      "report_path": null,
+      "report_sha256": null
+    }
+  },
+  "files": {
+    "objects": "gt_objects.csv",
+    "visibility_intervals": "gt_visibility_intervals.csv",
+    "observations": "gt_observations.csv",
+    "track_associations": "gt_track_associations.csv",
+    "interaction_pairs": "gt_interaction_pairs.csv",
+    "auto_track_audit": "auto_track_audit.csv"
+  }
+}

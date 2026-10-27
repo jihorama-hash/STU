@@ -1,0 +1,9 @@
+{
+  "points": [
+    {"id": 201, "x_px": 325.0, "y_px": 665.0, "grid_cell": [0, 0], "description": "우수받이", "original_x_px": 340.0, "original_y_px": 660.0, "refined": true},
+    {"id": 202, "x_px": 2267.0, "y_px": 285.0, "grid_cell": [0, 1], "description": "노면표시 모서리", "original_x_px": 2270.0, "original_y_px": 290.0, "refined": true},
+    {"id": 203, "x_px": 650.0, "y_px": 1270.0, "grid_cell": [1, 0], "description": "맨홀뚜껑", "original_x_px": 650.0, "original_y_px": 1270.0, "refined": false},
+    {"id": 204, "x_px": 500.0, "y_px": 1800.0, "grid_cell": [2, 0], "description": "중분대 노면표시 중간", "original_x_px": 500.0, "original_y_px": 1800.0, "refined": false},
+    {"id": 205, "x_px": 1762.0, "y_px": 1641.0, "grid_cell": [2, 1], "description": "우수받이", "original_x_px": 1750.0, "original_y_px": 1660.0, "refined": true}
+  ]
+}

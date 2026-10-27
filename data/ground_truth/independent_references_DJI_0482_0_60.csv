@@ -1,0 +1,9 @@
+sample_no,track_id,class,start_sec,end_sec,points,continuation_candidate_ids,continuation_count,image,source_note
+1,292,person,39.34,62.46,224,,0,sample_02_track_292.jpg,manual sheet person
+2,201,person,28.63,39.14,78,,0,sample_14_track_201.jpg,manual sheet person one of two
+3,211,person,29.83,38.54,76,,0,sample_16_track_211.jpg,manual sheet person one of two
+4,227,person,32.33,40.44,72,314,1,sample_18_track_227.jpg,manual sheet person
+5,85,person,16.62,24.32,64,152;182,2,sample_20_track_85.jpg,manual sheet person
+6,230,car,32.53,46.45,110,358;359;360;361;363;383,6,sample_23_track_230.jpg,manual sheet car reference representing a three-car sequence
+7,261,car,37.34,46.15,66,357;358;359;360;361;363;364;383,8,sample_25_track_261.jpg,manual sheet car reference representing a two-car sequence
+8,304,car,42.04,49.05,18,,0,sample_28_track_304.jpg,manual sheet car reference representing a three-car sequence

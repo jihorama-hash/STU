@@ -1,0 +1,86 @@
+{
+  "project": "GPT_Round",
+  "study_phase": "before",
+  "video_dir": "data/raw/before",
+  "output_dir": "outputs/analysis/baseline",
+  "sampling": {
+    "target_fps": 15.0,
+    "frame_step": 2
+  },
+  "detection": {
+    "status": "selected",
+    "model": "YOLO11m",
+    "weights": "models/yolo11m.pt",
+    "class_profile": "coco",
+    "confidence": 0.15,
+    "nms_iou": 0.5,
+    "slice_width": 1024,
+    "slice_height": 1024,
+    "slice_overlap": 0.2,
+    "image_size": 1024
+  },
+  "tracking": {
+    "algorithm": "ByteTrack",
+    "lost_seconds": 3.0,
+    "matching_threshold": 0.8,
+    "minimum_duration_seconds": 0.5,
+    "minimum_spread_pixels": 15.0,
+    "minimum_vehicle_exclusion_fraction": 0.5,
+    "minimum_vehicle_road_fraction": 0.1,
+    "outside_roadway_keep_spread_pixels": 50.0,
+    "continuation": {
+      "maximum_gap_seconds": 0.75,
+      "maximum_prediction_error_pixels": 70.0,
+      "maximum_direction_change_degrees": 35.0,
+      "maximum_speed_ratio": 2.0,
+      "maximum_size_ratio": 2.0,
+      "maximum_overlap_seconds": 0.75,
+      "maximum_duplicate_distance_pixels": 40.0
+    }
+  },
+  "conflicts": {
+    "pet_threshold_seconds": 1.5,
+    "maximum_candidate_pet_seconds": 5.0,
+    "maximum_roi_gap_seconds": 0.25,
+    "minimum_crossing_angle_degrees": 20.0,
+    "maximum_encroachment_distance_pixels": 160.0
+  },
+  "calibration": {
+    "mask_manifest": "data/calibration/by_video/manifest.json",
+    "zones": "data/calibration/legacy/rois_split.json",
+    "homographies": "data/calibration/legacy/alignment_homographies.json"
+  },
+  "batch": {
+    "video_manifest": "manifests/raw_videos.csv",
+    "output_dir": "outputs/analysis/full",
+    "video_ids": [
+      "DJI_0481",
+      "DJI_0483_Cut",
+      "DJI_0484",
+      "DJI_0485",
+      "DJI_0486",
+      "DJI_0487",
+      "DJI_0488"
+    ],
+    "end_seconds": {
+      "DJI_0481": 290.823867,
+      "DJI_0482": 290.9907,
+      "DJI_0483_Cut": 157.023533,
+      "DJI_0484": 28.795433,
+      "DJI_0485": 290.823867,
+      "DJI_0486": 290.9907,
+      "DJI_0487": 290.957333,
+      "DJI_0488": 118.0
+    }
+  },
+  "validation": {
+    "representative_video": "DJI_0482.MP4",
+    "pilot_clip_start_seconds": 150.0,
+    "pilot_clip_end_seconds": 210.0,
+    "pilot_clip_seconds": 60.0,
+    "selection_basis": "Maximum overlap with legacy manual-review samples while balancing 8 person and 8 vehicle tracks",
+    "minimum_track_quality": 0.7,
+    "minimum_conflict_precision": 0.7,
+    "minimum_conflict_recall": 0.7
+  }
+}

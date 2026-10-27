@@ -1,0 +1,116 @@
+{
+  "clip_id": "DJI_0481",
+  "frame_id": 2848,
+  "grid_rows": 3,
+  "grid_cols": 3,
+  "approved_at": "2026-08-13",
+  "approved_by": "user",
+  "points": [
+    {
+      "id": 1,
+      "x_px": 3480.0,
+      "y_px": 2027.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.022027,
+      "source": "auto_detected"
+    },
+    {
+      "id": 2,
+      "x_px": 3343.0,
+      "y_px": 1878.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.020339,
+      "source": "auto_detected"
+    },
+    {
+      "id": 5,
+      "x_px": 1231.0,
+      "y_px": 229.0,
+      "grid_row": 0,
+      "grid_col": 0,
+      "score": 0.016973,
+      "source": "auto_detected"
+    },
+    {
+      "id": 6,
+      "x_px": 1422.0,
+      "y_px": 213.0,
+      "grid_row": 0,
+      "grid_col": 1,
+      "score": 0.016147,
+      "source": "auto_detected"
+    },
+    {
+      "id": 7,
+      "x_px": 1976.0,
+      "y_px": 996.0,
+      "grid_row": 1,
+      "grid_col": 1,
+      "score": 0.014853,
+      "source": "auto_detected"
+    },
+    {
+      "id": 8,
+      "x_px": 3301.0,
+      "y_px": 1854.0,
+      "grid_row": 2,
+      "grid_col": 2,
+      "score": 0.014678,
+      "source": "auto_detected"
+    },
+    {
+      "id": 9,
+      "x_px": 3228.0,
+      "y_px": 1207.0,
+      "grid_row": 1,
+      "grid_col": 2,
+      "score": 0.013582,
+      "source": "auto_detected"
+    },
+    {
+      "id": 11,
+      "x_px": 3085.0,
+      "y_px": 356.0,
+      "grid_row": 0,
+      "grid_col": 2,
+      "score": 0.01179,
+      "source": "auto_detected"
+    },
+    {
+      "id": 12,
+      "x_px": 244.0,
+      "y_px": 731.0,
+      "grid_row": 1,
+      "grid_col": 0,
+      "score": 0.009249,
+      "source": "auto_detected"
+    },
+    {
+      "id": 13,
+      "x_px": 142.0,
+      "y_px": 1749.0,
+      "grid_row": 2,
+      "grid_col": 0,
+      "score": null,
+      "source": "user_manual",
+      "description": "정지선(횡단보도 진입 전) 좌측 끝단. 사용자 지시로 지정 — 좌표는 임계값 이진화(threshold=150) 후 해당 라인 윤곽의 최좌측 픽셀(x=142)에서 선 두께 중심(y=1749)으로 확정. 자동 생성된 8~12번 그리드 칸(2,0)은 트럭 그림자 안 코너가 오탐지돼 기각(10번)됐던 자리를 대체."
+    },
+    {
+      "id": 14,
+      "x_px": 1653.0,
+      "y_px": 1724.0,
+      "grid_row": 2,
+      "grid_col": 1,
+      "score": null,
+      "source": "user_manual",
+      "description": "가로등 밑단 — 보도(브릭 포장) 쪽 원형 받침 콜라. 사용자 지시로 지정. 최초 시도(경계석 쪽, 기둥 그림자에 가려 애매)를 사용자가 보도 쪽으로 재지정 요청해 교체. 좌표는 HoughCircles(minRadius=6,maxRadius=20)로 콜라 원 중심(1652.5,1723.5)을 검출해 정수 반올림. 그리드 칸(2,1) — 승인 9개 중 유일하게 비어 있던 칸을 채움."
+    }
+  ],
+  "rejected_ids": [
+    3,
+    4,
+    10
+  ]
+}

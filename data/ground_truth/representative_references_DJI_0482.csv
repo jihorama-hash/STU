@@ -1,0 +1,16 @@
+sample_no,track_id,class,start_sec,end_sec,points,continuation_candidate_ids,continuation_count,image,source_note
+1,647,person,128.73,157.66,279,818,1,sample_01_track_647.jpg,manual sheet person
+2,889,person,167.97,181.58,130,,0,sample_08_track_889.jpg,manual sheet person
+3,1024,person,181.48,192.69,74,,0,sample_13_track_1024.jpg,manual sheet person
+4,762,person,147.35,156.86,66,,0,sample_15_track_762.jpg,manual sheet person
+5,1120,person,199.0,207.21,28,,0,sample_17_track_1120.jpg,manual sheet person
+6,776,person,149.05,156.96,76,,0,sample_19_track_776.jpg,manual sheet person
+7,1169,motorcycle,206.01,229.73,175,1166,1,sample_04_track_1169.jpg,legacy 1169 and 1166 merged as one motorcycle
+8,865,car,164.36,182.38,159,,0,sample_21_track_865.jpg,manual sheet passenger car
+9,766,car,147.75,163.56,150,,0,sample_22_track_766.jpg,manual sheet passenger car
+10,1078,motorcycle,192.39,203.2,100,1146;1149;1151,3,sample_24_track_1078.jpg,manual sheet motorcycle
+11,931,car,170.67,178.38,39,,0,sample_26_track_931.jpg,manual sheet passenger car
+12,969,car,174.37,180.88,64,1027,1,sample_29_track_969.jpg,manual sheet passenger car
+13,1171,car,208.51,214.51,58,,0,sample_30_track_1171.jpg,manual sheet passenger car
+14,853,car,162.76,168.47,47,901;902;900;914;913;915,6,sample_31_track_853.jpg,manual sheet passenger car
+15,802,car,153.55,159.26,57,,0,sample_32_track_802.jpg,manual sheet passenger car

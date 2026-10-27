@@ -1,0 +1,164 @@
+{
+  "clip_id": "DJI_0481",
+  "frame_id": 2848,
+  "kept_ids": [
+    1,
+    7,
+    8,
+    9,
+    11
+  ],
+  "removed_ids": [
+    2,
+    5,
+    6,
+    12,
+    13,
+    14
+  ],
+  "target_empty_cells": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      1
+    ]
+  ],
+  "still_empty_cells": [],
+  "candidates": [
+    {
+      "id": 101,
+      "x_px": 557.0,
+      "y_px": 275.0,
+      "grid_row": 0,
+      "grid_col": 0,
+      "score": 0.013378
+    },
+    {
+      "id": 102,
+      "x_px": 1266.0,
+      "y_px": 134.0,
+      "grid_row": 0,
+      "grid_col": 0,
+      "score": 0.013184
+    },
+    {
+      "id": 103,
+      "x_px": 1037.0,
+      "y_px": 243.0,
+      "grid_row": 0,
+      "grid_col": 0,
+      "score": 0.012722
+    },
+    {
+      "id": 104,
+      "x_px": 2267.0,
+      "y_px": 285.0,
+      "grid_row": 0,
+      "grid_col": 1,
+      "score": 0.013373
+    },
+    {
+      "id": 105,
+      "x_px": 1868.0,
+      "y_px": 228.0,
+      "grid_row": 0,
+      "grid_col": 1,
+      "score": 0.011865
+    },
+    {
+      "id": 106,
+      "x_px": 2278.0,
+      "y_px": 245.0,
+      "grid_row": 0,
+      "grid_col": 1,
+      "score": 0.011419
+    },
+    {
+      "id": 107,
+      "x_px": 222.0,
+      "y_px": 1092.0,
+      "grid_row": 1,
+      "grid_col": 0,
+      "score": 0.008458
+    },
+    {
+      "id": 108,
+      "x_px": 1157.0,
+      "y_px": 1390.0,
+      "grid_row": 1,
+      "grid_col": 0,
+      "score": 0.007813
+    },
+    {
+      "id": 109,
+      "x_px": 101.0,
+      "y_px": 1427.0,
+      "grid_row": 1,
+      "grid_col": 0,
+      "score": 0.007593
+    },
+    {
+      "id": 110,
+      "x_px": 845.0,
+      "y_px": 2017.0,
+      "grid_row": 2,
+      "grid_col": 0,
+      "score": 0.013119
+    },
+    {
+      "id": 111,
+      "x_px": 67.0,
+      "y_px": 2066.0,
+      "grid_row": 2,
+      "grid_col": 0,
+      "score": 0.011956
+    },
+    {
+      "id": 112,
+      "x_px": 20.0,
+      "y_px": 2064.0,
+      "grid_row": 2,
+      "grid_col": 0,
+      "score": 0.010444
+    },
+    {
+      "id": 113,
+      "x_px": 2431.0,
+      "y_px": 1843.0,
+      "grid_row": 2,
+      "grid_col": 1,
+      "score": 0.017379
+    },
+    {
+      "id": 114,
+      "x_px": 1556.0,
+      "y_px": 1788.0,
+      "grid_row": 2,
+      "grid_col": 1,
+      "score": 0.010695
+    },
+    {
+      "id": 115,
+      "x_px": 2446.0,
+      "y_px": 1849.0,
+      "grid_row": 2,
+      "grid_col": 1,
+      "score": 0.007294
+    }
+  ]
+}

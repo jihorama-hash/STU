@@ -1,0 +1,109 @@
+{
+  "generated_by": "manual approval + 2 user-specified points (stop line, lamp base), src/39_register_frames.py candidates as base input",
+  "generated_at": "2026-08-13T18:01:10",
+  "inputs": {
+    "candidates": {
+      "path": "registration/reference_points_candidates.json",
+      "sha256_8": "a9cb8a9c"
+    },
+    "reference_frame": {
+      "path": "calib/reference_frame.png",
+      "sha256_8": "d9e70ee6"
+    }
+  },
+  "approval": {
+    "auto_detected_approved_ids": [
+      1,
+      2,
+      5,
+      6,
+      7,
+      8,
+      9,
+      11,
+      12
+    ],
+    "rejected_ids": [
+      3,
+      4,
+      10
+    ],
+    "rejected_by_user_message": "기각: 3, 4, 10 총3개 지점",
+    "manual_additions": [
+      {
+        "id": 13,
+        "reason": "사용자 지시(\"좌하단은 횡단보도 전에 정지선이 있다. 정지선의 왼쪽 끝단을 설정하면 좋을 것 같다.\")",
+        "method": "기준 프레임 이진화(threshold 150) 후 컨투어 추출, 정지선(단순 직선, 화살표 아님) 컨투어의 최좌측 픽셀에서 선 두께 중심 계산."
+      },
+      {
+        "id": 14,
+        "reason": "사용자 지시 2단계 — 1차 제안(경계석 쪽, 기둥 그림자로 가려 애매)을 사용자가 \"보도 쪽으로 옮겨서 가로등 밑을 특정\"으로 정정 요청, 보도(브릭 포장) 위 원형 받침 콜라로 교체.",
+        "method": "HoughCircles(dp=1,minDist=20,param1=60,param2=15,minRadius=6,maxRadius=20)로 콜라 원 검출, 중심 좌표(1652.5,1723.5) 반올림."
+      }
+    ]
+  },
+  "grid_coverage_final": {
+    "filled_cells": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "empty_cells": [],
+    "four_corners_covered": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "note": "9(자동)+13(정지선)+14(가로등 받침)로 3x3 그리드 전 칸(9/9)이 채워짐. 네 귀퉁이 전부 커버."
+  },
+  "outputs": [
+    "registration/reference_points_final.json",
+    "registration/reference_points_final_preview.png"
+  ]
+}
