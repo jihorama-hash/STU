@@ -150,7 +150,6 @@ Python 3.11 이상을 사용한다. PyTorch는 GPU 드라이버에 맞는 빌드
 python3 -m venv .venv
 .venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132
 .venv/bin/pip install -e '.[analysis,detection,dev,demo]'
-.venv/bin/pip install -r requirements.txt
 .venv/bin/pytest
 ```
 

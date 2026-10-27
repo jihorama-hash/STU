@@ -14,11 +14,11 @@ analysis = [
   "numpy>=1.26,<3",
   "opencv-python-headless>=4.9,<5",
   "pandas>=2.2,<3",
+  "PyYAML>=6,<7",
 ]
 detection = [
   "ultralytics>=8.3,<9",
   "supervision<0.30", # ByteTrack was removed in supervision 0.30.
-  "PyYAML>=6,<7",
 ]
 dev = ["pytest>=8,<9"]
 demo = ["streamlit>=1.37,<2"]
