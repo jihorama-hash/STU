@@ -109,6 +109,7 @@ raw detections
 | 프레임별 영상 정합 | 시제품(`scripts/registration/39_register_frames.py`) |
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
 | raw detection 별도 저장 | 미구현 |
+| 설치 의존성 | `pyproject.toml`의 `analysis`, `detection`, `dev`, `demo` extra로 관리. PyTorch는 GPU 드라이버에 맞춰 별도 선설치 |
 | 현장 미세조정, 사람 보정 도구 | 미구현 |
 | 횡단사건, 상호작용, A0/A1/B0/B1/B2 분류 | 미구현 |
 | 접근로별 미터 환산, `provisional_dpd` | 미구현 |
@@ -148,7 +149,7 @@ Python 3.11 이상을 사용한다. PyTorch는 GPU 드라이버에 맞는 빌드
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132
-.venv/bin/pip install -e '.[analysis,dev,demo]'
+.venv/bin/pip install -e '.[analysis,detection,dev,demo]'
 .venv/bin/pip install -r requirements.txt
 .venv/bin/pytest
 ```

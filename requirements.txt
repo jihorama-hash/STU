@@ -1,3 +1,5 @@
+# pyproject.toml is the source of truth; this file is supplementary.
+# Legacy/standalone dependency list retained for compatibility.
 # Core dependencies actually imported across src/*.py
 opencv-python
 numpy

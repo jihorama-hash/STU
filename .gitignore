@@ -25,6 +25,7 @@ models/
 # python cache / env
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 env/
 

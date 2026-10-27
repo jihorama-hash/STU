@@ -103,8 +103,8 @@ ST_Round `outputs/analysis/full/`은 구 ROI 결과이므로 재사용 시 북�
 2. (완료: 이전에 포함) ROI 정본 결정
 3. 남은 보정자료 정본 결정: `alignment_homographies.json`, `roadway_mask.png`
 4. 설정 통합: `configs/baseline.json`(JSON)과 `configs/parameters.yaml`(YAML)을 하나로
-5. `manifests/raw_videos.csv`에 DJI_0483 원본과 SRT의 sha256 추가, 분석 길이 기준을 `clips.yaml`로 일원화
-6. `pyproject.toml`에 `detection` 의존성(ultralytics, supervision<0.30, sahi) 추가
+5. (부분 완료: TASK-001, 2026-10-27) `manifests/raw_videos.csv`에 DJI_0483 원본 추가 및 기존 8개 체크섬 재확인, SRT 8개의 체크섬은 `manifests/raw_telemetry.csv`에 기록. 분석 길이 기준 일원화는 보류(DJI_0488 값 차이 사용자 판단 대기)
+6. (완료: TASK-001, 2026-10-27) `pyproject.toml`에 `detection` extra(ultralytics, supervision<0.30)와 실제 import에 필요한 PyYAML 추가. sahi는 지정 범위에서 import되지 않아 제외.
 7. `39_register_frames.py`, `31_*` 경로 재배선 후 `src/roundabout/` 모듈로 편입, 테스트 추가
 8. 지표정의서·구현사양서 개정: CEI 산출 불가, 접근로별 스케일, 궤적 확보 전략 반영
 9. 원 저장소 두 곳을 GitHub에서 Archive 처리
