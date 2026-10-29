@@ -1,1 +1,51 @@
 schema_version,gt_dataset_id,video_id,gt_object_id,object_class,first_visible_frame_index,last_visible_frame_index,first_visible_timestamp_seconds,last_visible_timestamp_seconds,origin_zone,destination_zone,in_scope,exclusion_reason,occlusion_summary,reviewer,review_status,review_timestamp_utc,notes
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P001,person,4196,4238,140.00653333333332,141.40793333333335,,,true,,none,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P002,person,4196,4792,140.00653333333332,159.89306666666667,,,true,,none,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P003,person,4196,4792,140.00653333333332,159.89306666666667,,,true,,none,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P004,person,4196,5000,140.00653333333332,166.83333333333334,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P005,person,4196,5994,140.00653333333332,199.9998,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C001,car,4196,4768,140.00653333333332,159.09226666666666,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P006,person,4196,4950,140.00653333333332,165.165,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P007,person,4196,4522,140.00653333333332,150.88406666666668,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P008,person,4196,4450,140.00653333333332,148.48166666666668,,,true,,none,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P009,person,4196,4450,140.00653333333332,148.48166666666668,,,true,,none,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P010,person,4196,4862,140.00653333333332,162.22873333333334,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P011,person,4196,4510,140.00653333333332,150.48366666666666,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P012,person,4196,4464,140.00653333333332,148.9488,,,true,,mixed,R01,draft,,present_at_window_start
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P013,person,4250,4458,141.80833333333334,148.7486,,,true,,mixed,R01,draft,,appear under tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C002,car,4320,4732,144.144,157.89106666666666,,,true,,none,R01,draft,,from NE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P014,person,4356,4734,145.3452,157.9578,,,true,,none,R01,draft,,Black suit
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C003,car,4466,4996,149.01553333333334,166.69986666666668,,,true,,none,R01,draft,,from SE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,M001,motorcycle,4556,4850,152.01853333333332,161.82833333333335,,,true,,mixed,R01,draft,,from SW
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C004,car,4650,5256,155.155,175.3752,,,true,,mixed,R01,draft,,from SW
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,4546,5488,151.68486666666666,183.11626666666666,,,true,,none,R01,draft,,from North to West
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P016,person,4734,5200,157.9578,173.50666666666666,,,true,,mixed,R01,draft,,from East
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P017,person,4734,5200,157.9578,173.50666666666666,,,true,,mixed,R01,draft,,from East
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P018,person,4734,5216,157.9578,174.04053333333334,,,true,,mixed,R01,draft,,from East
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C005,car,4890,5392,163.163,179.91306666666668,,,true,,none,R01,draft,,from SE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C006,car,4922,5460,164.23073333333335,182.18200000000002,,,true,,mixed,R01,draft,,from SW
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C007,car,5016,5460,167.3672,182.18200000000002,,,true,,none,R01,draft,,from NE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C008,car,5072,5582,169.23573333333334,186.25273333333334,,,true,,mixed,R01,draft,,from SW
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C009,car,5096,5610,170.03653333333332,187.187,,,true,,none,R01,draft,,from NE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,M002,motorcycle,5638,5950,188.12126666666666,198.53166666666667,,,true,,mixed,R01,draft,,from SW
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P019,person,4776,5166,159.35920000000002,172.3722,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P020,person,4864,5454,162.29546666666667,181.9818,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P021,person,4864,5454,162.29546666666667,181.9818,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P022,person,4880,5470,162.82933333333332,182.51566666666668,,,true,,mixed,R01,draft,,from NE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P023,person,4934,5994,164.63113333333334,199.9998,,,true,,mixed,R01,draft,,from North
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P024,person,4934,5364,164.63113333333334,178.9788,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P025,person,5372,5810,179.24573333333333,193.86033333333333,,,true,,none,R01,draft,,with hat
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P026,person,5442,5918,181.5814,197.46393333333333,,,true,,mixed,R01,draft,,appear under tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P027,person,5474,5890,182.64913333333334,196.52966666666666,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P028,person,5484,5880,182.9828,196.196,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P029,person,5562,5994,185.5854,199.9998,,,true,,mixed,R01,draft,,appeared in the middel of NE lane
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P030,person,5612,5994,187.25373333333334,199.9998,,,true,,mixed,R01,draft,,with yellow vest
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P031,person,5644,5784,188.32146666666668,192.99280000000002,,,true,,partial,R01,draft,,with yellow vest
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,M003,motorcycle,5676,5994,189.38920000000002,199.9998,,,true,,none,R01,draft,,from SE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P032,person,5702,5994,190.25673333333333,199.9998,,,true,,mixed,R01,draft,,from East
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P033,person,5714,5994,190.65713333333335,199.9998,,,true,,mixed,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P034,person,5722,5994,190.92406666666668,199.9998,,,true,,mixed,R01,draft,,appeared in the middel of NE lane
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P035,person,5760,5994,192.192,199.9998,,,true,,mixed,R01,draft,,appeared in the middel of NE lane
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P036,person,5800,5994,193.52666666666667,199.9998,,,true,,none,R01,draft,,from SE
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P037,person,5820,5994,194.19400000000002,199.9998,,,true,,full,R01,draft,,appeared under the tree
+object_track_gt_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P038,person,5968,5994,199.13226666666668,199.9998,,,true,,none,R01,draft,,appear in the middel of NE lane

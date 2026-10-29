@@ -98,14 +98,14 @@ raw detections
 
 ## 현재 상태
 
-2026-10-27 기준, 두 저장소의 자료를 통합하는 중이다.
+2026-10-29 기준, R01 블라인드 객체·가시성 검토표를 canonical GT 초안으로 전환했다.
 
 | 기능 | 상태 |
 |---|---|
 | 슬라이스 검출, 클래스별 ByteTrack, 필터, 분절 병합 | 구현(`src/roundabout/`) |
 | ROI 순차점유 PET, 국소 일정속도 TTC 후보 | 구현, 잠정값 |
 | 중단 후 재개 가능한 배치, 오프라인 데모 | 구현 |
-| 블라인드 객체·궤적 GT | 프로토콜과 검토 도구 준비, 판독 진행 중 |
+| 블라인드 객체·가시성 GT | R01 draft 생성(객체 50개, 가시성 구간 142개); 위치관측·상호작용쌍은 미작성 |
 | 프레임별 영상 정합 | 시제품(`scripts/registration/39_register_frames.py`) |
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
 | raw detection 별도 저장 | 미구현 |

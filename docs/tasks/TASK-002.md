@@ -1,6 +1,6 @@
 # TASK-002: 블라인드 GT 작업표를 정본 GT로 전환(객체·가시성)
 
-- 상태: ready
+- 상태: checkpoint
 - 작성: Aside / 승인: 사용자 / 작성일: 2026-10-29
 - 브랜치: task/002-gt-canonical-objects-visibility
 
@@ -84,8 +84,21 @@ R01 작업표(`review/gate3a2_object_inventory_R01.csv`, `review/gate3a2_visibil
 
 ## 완료 보고(Codex 작성)
 
-- 변경 파일:
-- 검증 결과:
-- 출력 요약:
-- 비워 둔 필드와 사유:
-- 한계와 미해결:
+- 변경 파일: `scripts/ground_truth/build_canonical_gt.py`,
+  `tests/test_build_canonical_gt.py`, `data/ground_truth/object_track_v1/gt_objects.csv`,
+  `data/ground_truth/object_track_v1/gt_visibility_intervals.csv`,
+  `data/ground_truth/object_track_v1/ground_truth_manifest.json`, `README.md`,
+  `docs/validation/DECISION_LOG.md`, 이 지시문. 검토용 XLSX/PPTX 3개는
+  `work/ground_truth/review/`에 보존하고 `data/.../review/` 경로에서는 Git 추적 제외.
+- 검증 결과: 변환 전 `scripts/blind_gt_review_viewer.py --validate-only` 통과. 그리드·객체 참조·
+  구간 연속성·시작/종료 일치·비가시 구간 사유 추가 점검 오류 없음. 전체 테스트 45 passed.
+- 출력 요약: 객체 50개(person 38, car 9, motorcycle 3), 가시성 구간 142개.
+  Grid object-frames: visible 9,798, partially_occluded 1,322, fully_occluded 414,
+  not_observable 0. 분모 포함 11,120 object-frames.
+- 비워 둔 필드와 사유: `origin_zone`, `destination_zone`은 승인된 구역 매핑이 없고
+  `notes`의 방향 메모를 zone으로 해석하지 않아 비움. `review_timestamp_utc`는 작업표에 실제
+  판독 시각이 없어 비움. manifest `automatic_run_lineage`와 미결정 항목은 유지.
+- 한계와 미해결: uppercase `TRUE`는 CSV boolean 규격에 맞춰 `true`로 표기 정규화. 원본의
+  `tree`, `canopy`, `reflector` 가시성 사유는 입력 보존 지시에 따라 유지했으나 DATA_DICTIONARY의
+  허용 목록과 불일치하며, 확정 평가 전에 매핑/개정 결정이 필요. 출력 요약과 변경 파일 검토 후
+  사용자 확인 대기; 커밋하지 않음.
