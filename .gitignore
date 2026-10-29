@@ -37,3 +37,4 @@ env/
 .runtime/
 *:Zone.Identifier
 calib/*_preview.jpg
+~$*.pptx
