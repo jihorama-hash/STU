@@ -14,6 +14,17 @@ from typing import Iterable
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 GT_ROOT = REPOSITORY_ROOT / "data/ground_truth/object_track_v1"
 REVIEW_ROOT = GT_ROOT / "review"
+OCCLUSION_REASON_MAP_PATH = REVIEW_ROOT / "occlusion_reason_map_R01.csv"
+ALLOWED_OCCLUSION_REASONS = {
+    "vegetation",
+    "vehicle",
+    "person",
+    "structure",
+    "frame_boundary",
+    "image_quality",
+    "ambiguous_identity",
+    "other",
+}
 
 OBJECT_INPUT_FIELDS = (
     "gt_object_id",
@@ -103,6 +114,31 @@ def _read_csv(path: Path, expected_fields: tuple[str, ...]) -> list[dict[str, st
             {field: (row.get(field) or "").strip() for field in expected_fields}
             for row in reader
         ]
+
+
+def load_occlusion_reason_map(path: Path) -> dict[str, tuple[str, str]]:
+    """Read and validate the explicit R01 reason mapping table."""
+    rows = _read_csv(path, ("raw_value", "canonical_value", "description"))
+    reason_map: dict[str, tuple[str, str]] = {}
+    errors: list[str] = []
+    for row_number, row in enumerate(rows, start=2):
+        raw_value = row["raw_value"]
+        canonical_value = row["canonical_value"]
+        if not raw_value:
+            errors.append(f"{path}: row {row_number}: raw_value is required")
+        elif raw_value in reason_map:
+            errors.append(f"{path}: row {row_number}: duplicate raw_value {raw_value!r}")
+        if canonical_value not in ALLOWED_OCCLUSION_REASONS:
+            errors.append(
+                f"{path}: row {row_number}: unsupported canonical_value "
+                f"{canonical_value!r}"
+            )
+        if not row["description"]:
+            errors.append(f"{path}: row {row_number}: description is required")
+        reason_map[raw_value] = (canonical_value, row["description"])
+    if errors:
+        raise InputValidationError(errors)
+    return reason_map
 
 
 def _parse_bool(value: str, label: str, errors: list[str]) -> str:
@@ -250,9 +286,24 @@ def build_canonical_rows(
     object_rows: list[dict[str, str]],
     visibility_rows: list[dict[str, str]],
     manifest: dict,
+    reason_map: dict[str, tuple[str, str]] | None = None,
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Convert validated worksheet rows into canonical CSV row dictionaries."""
     validate_inputs(object_rows, visibility_rows, manifest)
+    if reason_map is None:
+        reason_map = load_occlusion_reason_map(OCCLUSION_REASON_MAP_PATH)
+    unmapped_reasons = sorted(
+        {
+            row["occlusion_reason"]
+            for row in visibility_rows
+            if row["occlusion_reason"]
+            and row["occlusion_reason"] not in reason_map
+        }
+    )
+    if unmapped_reasons:
+        raise InputValidationError(
+            [f"unmapped occlusion_reason {value!r}" for value in unmapped_reasons]
+        )
     source_fps = float(manifest["video"]["source_fps"])
     common = {
         "schema_version": manifest["schema_version"],
@@ -319,6 +370,12 @@ def build_canonical_rows(
             in_scope == "true"
             and row["visibility_status"] not in DENOMINATOR_EXCLUDED_STATUSES
         )
+        raw_reason = row["occlusion_reason"]
+        canonical_reason = reason_map[raw_reason][0] if raw_reason else ""
+        notes = row["notes"]
+        if raw_reason:
+            original_reason_note = f"original_occlusion_reason={raw_reason}"
+            notes = f"{notes}; {original_reason_note}" if notes else original_reason_note
         canonical_visibility.append(
             {
                 **common,
@@ -333,12 +390,12 @@ def build_canonical_rows(
                 "visibility_status": row["visibility_status"],
                 "in_scope": in_scope,
                 "denominator_eligible": str(eligible).lower(),
-                "occlusion_reason": row["occlusion_reason"],
+                "occlusion_reason": canonical_reason,
                 "annotation_method": "manual",
                 "reviewer": reviewer,
                 "review_status": "draft",
                 "review_timestamp_utc": "",
-                "notes": row["notes"],
+                "notes": notes,
             }
         )
     return canonical_objects, canonical_visibility
@@ -362,13 +419,15 @@ def convert(
     manifest_path: Path,
     objects_output: Path,
     visibility_output: Path,
+    reason_map_path: Path = OCCLUSION_REASON_MAP_PATH,
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Validate all inputs, then write canonical files and update the manifest."""
     object_rows = _read_csv(object_path, OBJECT_INPUT_FIELDS)
     visibility_rows = _read_csv(visibility_path, VISIBILITY_INPUT_FIELDS)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    reason_map = load_occlusion_reason_map(reason_map_path)
     object_output_rows, visibility_output_rows = build_canonical_rows(
-        object_rows, visibility_rows, manifest
+        object_rows, visibility_rows, manifest, reason_map
     )
 
     # All worksheet checks complete before any destination is changed.
@@ -409,6 +468,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=GT_ROOT / "gt_visibility_intervals.csv",
     )
+    parser.add_argument(
+        "--occlusion-reason-map",
+        type=Path,
+        default=OCCLUSION_REASON_MAP_PATH,
+    )
     return parser.parse_args()
 
 
@@ -421,6 +485,7 @@ def main() -> None:
             args.manifest,
             args.objects_output,
             args.visibility_output,
+            args.occlusion_reason_map,
         )
     except InputValidationError as exc:
         raise SystemExit(

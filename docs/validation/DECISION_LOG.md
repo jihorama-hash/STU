@@ -179,6 +179,17 @@ classwise NMS 0.50, class-aware ByteTrack 조건으로 비교했다.
   프레임과 일치한다. 완전 가림 구간은 분모에서 제외한다.
 - `dataset_status`와 행별 `review_status`는 `draft`다. 위치관측과 상호작용쌍은 이 결정에
   포함하지 않는다. 검토시각은 작업표에 annotation timestamp가 없어 비워 둔다.
-- 원본 가시성 사유(`tree`, `canopy`, `reflector`)는 사람 판단값 보존 지시에 따라 그대로
-  옮겼다. 데이터사전의 제한된 `occlusion_reason` 허용 목록과 맞지 않아, 평가용 확정 전에
-  어휘 매핑 또는 데이터사전 개정이 필요하다.
+- 원본 가시성 사유(`tree`, `canopy`, `reflector`)는 초기 변환에서 그대로 보존했으며,
+  허용 어휘로의 매핑은 아래 2026-10-29 사용자 결정으로 후속 반영했다.
+
+## 2026-10-29 — R01 가림 원인 어휘 매핑
+
+- 사용자가 R01 가림 사유 매핑을 승인했다: `tree` → `vegetation`, `canopy` → `structure`
+  (가로등·도로 시설물), `reflector` → `structure` (도로 시설물·표지판).
+- 매핑 정본은 `data/ground_truth/object_track_v1/review/occlusion_reason_map_R01.csv`이며,
+  변환기는 이 표를 읽는다. 표에 없는 원본 사유는 변환 오류로 처리한다.
+- 정본 `gt_visibility_intervals.csv`에는 매핑된 `occlusion_reason`과 함께 원본 사유를
+  `notes`의 `original_occlusion_reason=<원래값>`으로 보존한다. 작업표는 변경하지 않는다.
+- 재생성 결과는 `vegetation` 37구간(partial 29, full 8), `structure` 25구간
+  (partial 24, full 1), 사전 허용 목록 밖 사유 0건이다. 객체 50개, 가시성 구간 142개,
+  분모 11,120 object-frames는 유지됐다.

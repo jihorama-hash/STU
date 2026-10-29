@@ -83,8 +83,67 @@ class BuildCanonicalGtTest(unittest.TestCase):
         self.assertEqual(visibility[0]["visibility_interval_id"], "P001_VI001")
         self.assertEqual(visibility[1]["visibility_interval_id"], "P001_VI002")
         self.assertEqual(visibility[1]["denominator_eligible"], "false")
-        self.assertEqual(visibility[1]["occlusion_reason"], "tree")
-        self.assertEqual(visibility[1]["notes"], "occlusion note")
+        self.assertEqual(visibility[1]["occlusion_reason"], "vegetation")
+        self.assertEqual(
+            visibility[1]["notes"],
+            "occlusion note; original_occlusion_reason=tree",
+        )
+
+    def test_reason_map_applies_all_user_mappings(self) -> None:
+        rows = [
+            {
+                "gt_object_id": "P001",
+                "start_frame_index": "4196",
+                "end_frame_index": "4196",
+                "visibility_status": "visible",
+                "occlusion_reason": "",
+                "notes": "",
+            },
+            {
+                "gt_object_id": "P001",
+                "start_frame_index": "4198",
+                "end_frame_index": "4198",
+                "visibility_status": "partially_occluded",
+                "occlusion_reason": "tree",
+                "notes": "",
+            },
+            {
+                "gt_object_id": "P001",
+                "start_frame_index": "4200",
+                "end_frame_index": "4200",
+                "visibility_status": "fully_occluded",
+                "occlusion_reason": "reflector",
+                "notes": "",
+            },
+        ]
+        # Add canopy to the middle state to cover both structure sources.
+        rows[1]["occlusion_reason"] = "canopy"
+        _, visibility = build_canonical_rows(
+            [make_object()],
+            rows,
+            make_manifest(),
+            {"canopy": ("structure", "fixture mapping"),
+             "reflector": ("structure", "fixture mapping")},
+        )
+        self.assertEqual(
+            [row["occlusion_reason"] for row in visibility],
+            ["", "structure", "structure"],
+        )
+        self.assertEqual(
+            visibility[1]["notes"], "original_occlusion_reason=canopy"
+        )
+        self.assertEqual(
+            visibility[2]["notes"], "original_occlusion_reason=reflector"
+        )
+
+    def test_unmapped_reason_is_rejected(self) -> None:
+        with self.assertRaisesRegex(InputValidationError, "unmapped occlusion_reason 'tree'"):
+            build_canonical_rows(
+                [make_object()],
+                make_intervals(),
+                make_manifest(),
+                {"canopy": ("structure", "fixture mapping")},
+            )
 
     def test_overlap_is_rejected(self) -> None:
         rows = make_intervals()
