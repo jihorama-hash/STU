@@ -9,10 +9,6 @@ output/
 references/
 work/
 
-# manual GT annotation work-in-progress (not canonical GT)
-data/ground_truth/object_track_v1/review/gt_observations_R01.csv
-data/ground_truth/object_track_v1/review/gt_observation_skips_R01.csv
-
 # model files
 models/
 *.pt

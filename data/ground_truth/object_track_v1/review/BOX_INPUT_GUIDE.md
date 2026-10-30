@@ -82,6 +82,17 @@ anchor에서도 유지되며, 객체를 바꾸면 해당 class의 기본 배율�
 - 위치 작업 파일: `data/ground_truth/object_track_v1/review/gt_observations_R01.csv`
 - 건너뛰기 기록: `data/ground_truth/object_track_v1/review/gt_observation_skips_R01.csv`
 - 두 파일은 작업용이다. 정본 `gt_observations.csv`로 변환하지 않는다.
+- **입력을 마칠 때마다 두 작업 파일을 함께 커밋하고 push해 원자료를 백업한다.** 서버를 종료한 뒤 WSL 저장소
+  루트에서 아래 명령을 실행한다. 입력이 계속 진행 중이어도 각 시점의 작업 상태를 저장할 수 있다.
+
+  ```bash
+  git add -- data/ground_truth/object_track_v1/review/gt_observations_R01.csv data/ground_truth/object_track_v1/review/gt_observation_skips_R01.csv
+  git commit -m "data: R01 box progress 54/971"
+  git push origin task/003-gt-box-annotation-tool
+  ```
+
+  다음 백업 때는 커밋 제목의 진행 수치를 최신 관측/전체 앵커 수로 바꾼다. 명령은 작업 브랜치에서 실행하며,
+  정본 GT 파일은 이 백업에 포함하지 않는다.
 - 박스 범위, 프레임 경계, 객체 class, 중복, visibility 분모와 누락 anchor 수를 다시 검사하려면 WSL 저장소
   루트에서 다음 명령을 실행한다.
 
