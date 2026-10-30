@@ -105,7 +105,7 @@ raw detections
 | 슬라이스 검출, 클래스별 ByteTrack, 필터, 분절 병합 | 구현(`src/roundabout/`) |
 | ROI 순차점유 PET, 국소 일정속도 TTC 후보 | 구현, 잠정값 |
 | 중단 후 재개 가능한 배치, 오프라인 데모 | 구현 |
-| 블라인드 객체·가시성 GT | R01 draft 생성(객체 50개, 가시성 구간 142개); 위치관측·상호작용쌍은 미작성 |
+| 블라인드 객체·가시성 GT | R01 draft 생성(객체 50개, 가시성 구간 142개); 위치 박스 입력 도구 구현, 사용자 입력 작업파일 validator 통과; skip 요약 및 입력 완료 후 visibility 경계 재검토 절차 추가; 가시성 경계 재검토와 위치관측 완료는 대기 |
 | 프레임별 영상 정합 | 시제품(`scripts/registration/39_register_frames.py`) |
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
 | raw detection 별도 저장 | 미구현 |

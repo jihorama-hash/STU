@@ -1,6 +1,6 @@
 # TASK-003: 블라인드 GT 위치 판독 도구(박스 입력 모드)
 
-- 상태: ready (TASK-002 완료 후 착수)
+- 상태: 완료 (입력 도구 구현; R01 위치 GT 입력은 사용자 진행 중)
 - 작성: Aside / 승인: 사용자 / 작성일: 2026-10-29
 - 브랜치: task/003-gt-box-annotation-tool
 
@@ -16,8 +16,15 @@
 - 앵커 프레임: 객체의 분모 포함 구간(`visible`, `partially_occluded`)마다
   - 구간의 첫 프레임과 마지막 프레임
   - 그 사이에서 `(frame_index - 4196)`이 30의 배수인 프레임(원본 기준 1초 간격)
-- 예상 앵커 수: 약 970개(R01 기준). `fully_occluded` 구간에는 앵커를 만들지 않는다.
+- 예상 앵커 수: 약 970개(R01 기준). 구현 계산 결과는 971개다. `fully_occluded` 구간에는 앵커를 만들지 않는다.
 - 보간(`interpolated`)은 이 작업에 포함하지 않는다. 최대 보간 간격은 평가 지시문에서 따로 정한다.
+
+- 화면 설계와 단축키는 2026-10-29 사용자 승인을 받았다. 전체 프레임·확대 입력창, 객체·앵커 진행률,
+  visibility 상태, 기존 GT 박스와 건너뛰기 입력을 한 화면에 제공한다.
+- 확대 중심은 동일 객체의 직전 두 GT 박스로 선형 예측한다. 과거 박스가 없으면 전체 프레임을 클릭해 중심을
+  지정한다. 같은 프레임의 다른 객체 박스는 흐리게 표시하고 토글할 수 있다.
+- person·bicycle 기본 확대는 3배, 차량류는 1배다. `P`는 anchor 전후 ±1초를 확대창에서 재생하고,
+  `C`는 직전 박스를 복사해 확정행에 `copied_from_previous`를 남긴다. `N`/`Shift+N`은 다음/이전 객체다.
 
 `DECISION_LOG.md`에 위 내용을 기록한다.
 
@@ -84,6 +91,10 @@
 1. 화면 구성안(스크린샷 또는 설명)과 단축키 목록을 먼저 보고하고 사용자 확인을 받은 뒤 구현한다.
 2. 구현 후 사용자가 객체 1개(예: P001)로 직접 시험 입력해 보고, 불편한 점을 반영한 뒤 커밋한다.
 
+체크포인트 1은 2026-10-29 승인됐다. P001/P002 시험 입력 작업파일은 validator를 통과한다. 작은 화면이라는
+사용자 피드백에 따라 브라우저 전체 영역과 확대창 휠 확대를 추가했고, 박스 안 드래그 이동 시 발점도 함께
+이동하도록 했다. 입력 완료 뒤 skip 요약으로 visibility 경계를 재검토하는 절차와 `--skip-summary`를 추가했다.
+
 ## 완료 조건
 
 - `.venv/bin/pytest` 전체 통과
@@ -93,7 +104,16 @@
 
 ## 완료 보고(Codex 작성)
 
-- 변경 파일:
-- 실행 방법:
-- 시험 입력 결과:
-- 한계와 미해결:
+- 변경 파일: `.gitignore`, `README.md`, `apps/demo/blind_gt_review.py`, `apps/demo/gt_box_annotation.py`,
+  `data/ground_truth/object_track_v1/review/BOX_INPUT_GUIDE.md`, `docs/tasks/TASK-003.md`,
+  `docs/validation/DECISION_LOG.md`, `tests/test_gt_box_annotation.py`.
+- 실행 방법: WSL 저장소 루트에서 `PYTHONPATH=src .venv/bin/python apps/demo/blind_gt_review.py --box-input`;
+  작업 파일 검증은 같은 명령에 `--validate-only`를, 건너뛰기 정리는 `--skip-summary`를 붙인다.
+- 시험 입력 결과: P001/P002 작업파일 54개 관측, 3개 skip. 971개 anchor 중 914개는 아직 미입력이다.
+  `--validate-only` 통과, skip 요약은 P002 `other` 3건(4736, 4766, 4792)을 표시했다.
+  시험 입력 중 확인된 작은 화면 피드백에 따라 전체 화면 배치와 확대창 휠 확대, 박스 이동 시 발점 이동을 반영했다.
+- 검증: 위치 입력 전용 테스트 11개 통과, 전체 pytest 58개 통과, `git diff --check` 통과.
+  승인된 환경에서 로컬 서버가 기동되고 `GET /`이 HTTP 200과 입력 페이지를 반환했다. 이 세션에서는
+  Windows 브라우저 자체 접속을 새로 확인하지 않았다.
+- 한계와 미해결: 박스 값 작성, visibility 경계 재검토, 정본 변환은 범위 밖이며 사용자 입력 완료 후 별도 수행한다.
+  자동 검출·추적 결과, GPU 및 전체 영상 처리는 사용하지 않았다.

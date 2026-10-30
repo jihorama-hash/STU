@@ -193,3 +193,24 @@ classwise NMS 0.50, class-aware ByteTrack 조건으로 비교했다.
 - 재생성 결과는 `vegetation` 37구간(partial 29, full 8), `structure` 25구간
   (partial 24, full 1), 사전 허용 목록 밖 사유 0건이다. 객체 50개, 가시성 구간 142개,
   분모 11,120 object-frames는 유지됐다.
+
+## 2026-10-29 — R01 위치 GT 앵커 간격 승인
+
+- 분모 포함(`visible`, `partially_occluded`) visibility interval마다 시작·끝 프레임과, 평가 시작 frame
+  4196에서 30 source-frame 간격인 내부 프레임에 수동 위치 박스를 입력한다.
+- `fully_occluded` 및 `not_observable` interval에는 anchor를 생성하지 않는다.
+- 이번 입력은 `manual` 관측만 작성하며 보간, association, 지표 계산은 포함하지 않는다. 최대 보간 간격은
+  별도 평가 지시에서 결정한다.
+- 블라인드 판독 UI는 canonical GT와 사용자가 직접 입력한 GT만 사용한다. 확대 중심의 선형예측도 같은
+  객체의 직전 두 수동 GT 박스에만 기반하며 자동 분석 결과는 사용하지 않는다.
+
+## 2026-10-29 — 위치 GT 입력 중 skip과 visibility 경계 재검토
+
+- 사용자는 위치 GT 입력이 진행되는 동안 Gate 3-A2 작업표를 수정하지 않고, canonical visibility와 실제 화면이
+  맞지 않는 앵커는 skip으로 보류한 뒤 입력 완료 후 별도로 재검토하기로 했다.
+- 화면 밖으로 나가 찾을 수 없는 앵커는 `not_found`, 화면 안에서 정본보다 더 가려져 위치 판독이 불가능한
+  앵커는 `occluded_more_than_marked`로 기록한다.
+- 입력 완료 후 `--skip-summary`로 객체·사유·프레임을 모아 확인하고, 원본 영상 근거로 visibility 경계를
+  재판정한다. 객체 범위가 바뀌면 object inventory의 시작·종료 frame도 맞춘다. 이후 worksheet validator를
+  통과시킨 뒤 TASK-002 변환기를 실행해 canonical GT를 재생성한다. 변환 중에는 위치 관측·skip 작업파일을
+  자동 수정하지 않는다.

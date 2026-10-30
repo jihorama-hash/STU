@@ -610,6 +610,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="open the local reviewer URL in the default browser",
     )
+    parser.add_argument(
+        "--box-input",
+        action="store_true",
+        help="open the manual GT observation box-entry mode",
+    )
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="validate canonical GT and observation work files without opening video",
+    )
+    parser.add_argument(
+        "--skip-summary",
+        action="store_true",
+        help="validate work files and summarize skips by object and reason",
+    )
     parser.add_argument("--video", type=Path, default=DEFAULT_VIDEO)
     parser.add_argument(
         "--objects-worksheet",
@@ -626,6 +641,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.box_input or args.validate_only or args.skip_summary:
+        from apps.demo.gt_box_annotation import run_box_mode
+
+        run_box_mode(args)
+        return
     grid = EvaluationGrid()
     warnings = validate_worksheets(
         args.objects_worksheet,
