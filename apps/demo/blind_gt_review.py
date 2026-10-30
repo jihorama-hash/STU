@@ -625,6 +625,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="validate work files and summarize skips by object and reason",
     )
+    parser.add_argument(
+        "--size-outliers",
+        action="store_true",
+        help="list observation boxes at least 40% larger than same-object medians",
+    )
     parser.add_argument("--video", type=Path, default=DEFAULT_VIDEO)
     parser.add_argument(
         "--objects-worksheet",
@@ -641,7 +646,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    if args.box_input or args.validate_only or args.skip_summary:
+    if args.box_input or args.validate_only or args.skip_summary or args.size_outliers:
         from apps.demo.gt_box_annotation import run_box_mode
 
         run_box_mode(args)

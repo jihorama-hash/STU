@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 import math
+import statistics
 import threading
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -61,6 +62,8 @@ FRAME_WIDTH = 3840
 FRAME_HEIGHT = 2160
 PLAYBACK_WIDTH = 1280
 REVIEWER = "R01"
+DEFAULT_FOOT_TOLERANCE_PX = 1.0
+SIZE_OUTLIER_RATIO = 1.4
 
 
 class AnnotationError(ValueError):
@@ -104,6 +107,40 @@ def _number(value: str, label: str) -> float:
     if not math.isfinite(result):
         raise AnnotationError(f"{label}: expected finite number")
     return result
+
+
+def _stored_box(box: dict[str, float]) -> dict[str, int]:
+    """Return the integer pixel box that will be persisted."""
+    return {
+        "x1": round(_number(str(box.get("x1")), "x1")),
+        "y1": round(_number(str(box.get("y1")), "y1")),
+        "x2": round(_number(str(box.get("x2")), "x2")),
+        "y2": round(_number(str(box.get("y2")), "y2")),
+    }
+
+
+def default_foot_point(box: dict[str, float]) -> dict[str, float]:
+    """Derive the default foot point from the integer box to be stored."""
+    stored = _stored_box(box)
+    return {
+        "x": (stored["x1"] + stored["x2"]) / 2,
+        "y": float(stored["y2"]),
+    }
+
+
+def foot_point_inside_box(
+    box: dict[str, float],
+    foot: dict[str, float],
+    *,
+    tolerance: float = 0.0,
+) -> bool:
+    """Check a foot point against box boundaries with a bounded tolerance."""
+    if tolerance < 0 or tolerance > DEFAULT_FOOT_TOLERANCE_PX:
+        raise ValueError("foot point tolerance must be between 0 and 1 pixel")
+    return (
+        box["x1"] - tolerance <= foot["x"] <= box["x2"] + tolerance
+        and box["y1"] - tolerance <= foot["y"] <= box["y2"] + tolerance
+    )
 
 
 def calculate_anchors(
@@ -448,7 +485,15 @@ class AnnotationState:
                 errors.append(f"{key_label}: manual observations must not have interpolation span")
             if not (0 <= x1 < x2 <= FRAME_WIDTH and 0 <= y1 < y2 <= FRAME_HEIGHT):
                 errors.append(f"{key_label}: box is outside frame or has nonpositive size")
-            if not (x1 <= foot_x <= x2 and y1 <= foot_y <= y2):
+            adjusted = "foot_adjusted" in {
+                part.strip() for part in row["notes"].split(";")
+            }
+            tolerance = 0.0 if adjusted else DEFAULT_FOOT_TOLERANCE_PX
+            if not foot_point_inside_box(
+                {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                {"x": foot_x, "y": foot_y},
+                tolerance=tolerance,
+            ):
                 errors.append(f"{key_label}: foot point must lie inside box")
             if row["in_scope"].lower() != obj["in_scope"].lower():
                 errors.append(f"{key_label}: in_scope does not match object")
@@ -554,15 +599,30 @@ class AnnotationState:
             interval = self.interval_at(object_id, frame_index)
             if interval is None or interval["visibility_status"] not in VISIBILITY_STATUSES:
                 raise AnnotationError("observation frame is not visible or partially occluded")
-            x1 = round(_number(str(box.get("x1")), "x1"))
-            y1 = round(_number(str(box.get("y1")), "y1"))
-            x2 = round(_number(str(box.get("x2")), "x2"))
-            y2 = round(_number(str(box.get("y2")), "y2"))
+            stored_box = _stored_box(box)
+            x1, y1, x2, y2 = (
+                stored_box["x1"],
+                stored_box["y1"],
+                stored_box["x2"],
+                stored_box["y2"],
+            )
             if not (0 <= x1 < x2 <= FRAME_WIDTH and 0 <= y1 < y2 <= FRAME_HEIGHT):
                 raise AnnotationError("box must have positive size inside the 3840x2160 frame")
-            foot_x = float(foot["x"]) if foot else (x1 + x2) / 2
-            foot_y = float(foot["y"]) if foot else float(y2)
-            if not (x1 <= foot_x <= x2 and y1 <= foot_y <= y2):
+            if foot_adjusted:
+                if foot is None:
+                    raise AnnotationError("F-adjusted foot point is missing")
+                foot_x = _number(str(foot.get("x")), "foot_x")
+                foot_y = _number(str(foot.get("y")), "foot_y")
+            else:
+                # Default points are always derived from the quantized box;
+                # stale or pre-quantization client coordinates are ignored.
+                default_foot = default_foot_point(stored_box)
+                foot_x, foot_y = default_foot["x"], default_foot["y"]
+            if not foot_point_inside_box(
+                stored_box,
+                {"x": foot_x, "y": foot_y},
+                tolerance=0.0,
+            ):
                 raise AnnotationError("foot point must lie inside the box")
             if foot_adjusted:
                 notes = _append_note(notes, "foot_adjusted")
@@ -706,6 +766,57 @@ def format_skip_summary(state: AnnotationState) -> str:
     return "\n".join(lines)
 
 
+def format_size_outliers(state: AnnotationState) -> str:
+    """List rows with either box dimension at least 40% above its object median."""
+    rows_by_object: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in state.observations:
+        rows_by_object[row["gt_object_id"]].append(row)
+    object_classes = {row["gt_object_id"]: row["object_class"] for row in state.objects}
+    medians: dict[str, tuple[float, float]] = {}
+    for object_id, rows in rows_by_object.items():
+        widths = [float(row["x2"]) - float(row["x1"]) for row in rows]
+        heights = [float(row["y2"]) - float(row["y1"]) for row in rows]
+        medians[object_id] = (statistics.median(widths), statistics.median(heights))
+
+    outliers: list[tuple[dict[str, str], float, float, float, float]] = []
+    for object_id in sorted(rows_by_object):
+        median_width, median_height = medians[object_id]
+        for row in sorted(rows_by_object[object_id], key=lambda item: int(item["frame_index"])):
+            width = float(row["x2"]) - float(row["x1"])
+            height = float(row["y2"]) - float(row["y1"])
+            width_ratio = width / median_width
+            height_ratio = height / median_height
+            if (
+                width >= median_width * SIZE_OUTLIER_RATIO
+                or height >= median_height * SIZE_OUTLIER_RATIO
+            ):
+                outliers.append((row, width, height, width_ratio, height_ratio))
+
+    if not outliers:
+        return (
+            f"size outliers: 없음 (관측 {len(state.observations)}행, "
+            f"기준 {SIZE_OUTLIER_RATIO:.2f}x 이상)"
+        )
+    lines = [
+        f"size outliers: {len(outliers)}행 "
+        f"(객체별 중앙값 대비 폭 또는 높이 {SIZE_OUTLIER_RATIO:.2f}x 이상)"
+    ]
+    for row, width, height, width_ratio, height_ratio in outliers:
+        object_id = row["gt_object_id"]
+        median_width, median_height = medians[object_id]
+        lines.append(
+            f"{object_id} ({object_classes[object_id]}) frame {row['frame_index']}: "
+            f"{width:g}x{height:g} px; median {median_width:g}x{median_height:g} px; "
+            f"폭 {width_ratio:.2f}x, 높이 {height_ratio:.2f}x"
+        )
+    return "\n".join(lines)
+
+
+def size_outliers_only(state: AnnotationState) -> None:
+    """Print size outliers without changing any work-file rows."""
+    print(format_size_outliers(state))
+
+
 def skip_summary_only(state: AnnotationState) -> None:
     """Print the validated skip summary without opening the source video."""
     print(format_skip_summary(state))
@@ -730,7 +841,7 @@ header,.panel,.toolbar{background:var(--panel);border:1px solid var(--line);bord
 <button id="prevAnchor">← 이전 앵커</button><button id="nextAnchor">다음 앵커 →</button>
 <button id="zoomOut">− 축소</button><button id="zoomIn">+ 확대</button><button id="zoomReset">0 화면 맞춤</button>
 <button id="playAround">P ±1초 재생</button><label><input id="showOthers" type="checkbox" checked> 같은 프레임 다른 객체 박스</label>
-<button id="copyPrevious">C 직전 박스 복사</button><button id="editFoot">F 발점 수정</button>
+<button id="copyPrevious">C 복사 후 조정</button><button id="copySaveNext">V 복사·저장·다음</button><button id="editFoot">F 발점 수정</button>
 <button id="undo">Ctrl+Z 되돌리기</button><button id="redraw">박스 다시 그리기</button><button id="skipButton">K 건너뛰기</button><button id="saveNext" class="primary">Enter 저장 후 다음</button></section>
 <section class="views"><div class="panel"><h2>전체 원본 프레임</h2><div class="canvas-wrap overview"><canvas id="overview"></canvas></div><div class="legend">전체 프레임을 클릭하면 확대 중심을 옮깁니다. 파란 사각형은 현재 확대 범위입니다.</div></div>
 <div class="panel"><h2>확대 입력창 <span id="zoomLabel" class="meta"></span></h2><div class="canvas-wrap"><canvas id="detail"></canvas></div><div class="legend">박스 안을 드래그하면 박스와 발점이 함께 이동합니다. 박스 밖을 드래그하면 새 박스를 그립니다. 마우스 휠로 포인터 위치를 중심으로 최대 30배까지 확대할 수 있습니다. 발점만 바꾸려면 F를 누르고 박스 안을 클릭합니다.</div></div></section>
@@ -741,6 +852,9 @@ header,.panel,.toolbar{background:var(--panel);border:1px solid var(--line);bord
 const overview=document.getElementById("overview"),detail=document.getElementById("detail"),ctxO=overview.getContext("2d"),ctxD=detail.getContext("2d");
 let state=null, objectIndex=0, anchorIndex=0, frame=null, visibility=null, image=null, imageUrl=null, observations=[], others=[], saved=null, previous=null, skip=null;
 let zoom=1, center={x:1920,y:1080}, crop=null, box=null, foot=null, dirty=false, drag=null, footMode=false, footAdjusted=false, showOthers=true, copied=false, undoStack=[], playing=false, playbackToken=0;
+function storedBox(b){return {x1:Math.round(b.x1),y1:Math.round(b.y1),x2:Math.round(b.x2),y2:Math.round(b.y2)}}
+function defaultFoot(b){const q=storedBox(b);return {x:(q.x1+q.x2)/2,y:q.y2}}
+function footInside(b,p){return p&&p.x>=b.x1&&p.x<=b.x2&&p.y>=b.y1&&p.y<=b.y2}
 const objectSelect=document.getElementById("objectSelect"), statusEl=document.getElementById("status");
 function key(o,f){return `${o}:${f}`}
 function setStatus(message,error=false){statusEl.textContent=message;statusEl.classList.toggle("error",error)}
@@ -773,14 +887,14 @@ async function reloadState(){const r=await request(`/api/state?object_id=${encod
 async function moveAnchor(delta){if(!localCanLeave())return;const list=currentObject().anchors;const next=Math.max(0,Math.min(list.length-1,anchorIndex+delta));if(next===anchorIndex)return;anchorIndex=next;await reloadState();restoreAnchor()}
 async function moveObject(delta){if(!localCanLeave())return;const next=Math.max(0,Math.min(state.objects.length-1,objectIndex+delta));if(next===objectIndex)return;objectIndex=next;anchorIndex=firstPendingIndex(currentObject());fitZoom();await reloadState();restoreAnchor()}
 async function moveToObject(id){if(!localCanLeave()){objectSelect.value=currentObject().gt_object_id;return}const found=state.objects.findIndex(o=>o.gt_object_id===id);if(found<0)return;objectIndex=found;anchorIndex=firstPendingIndex(currentObject());fitZoom();await reloadState();restoreAnchor()}
-async function saveAndAdvance(){if(skip){if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;await reloadState();restoreAnchor()}else{setStatus("현재 객체의 마지막 앵커입니다.")}return}if(!box)return setStatus("박스가 없습니다. 드래그로 입력하거나 K로 건너뛰기 사유를 선택하세요.",true);if(foot&&(foot.x<box.x1||foot.x>box.x2||foot.y<box.y1||foot.y>box.y2))return setStatus("발점이 박스 밖입니다. F를 누르고 확대창에서 박스 안을 클릭하세요.",true);try{const r=await request("/api/observation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload())});const savedRow=await r.json();saved=savedRow.row;dirty=false;markSaved();setStatus("관측행 저장됨");await reloadState();if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;restoreAnchor()}else{updateObjectInfo()}}catch(e){setStatus(e.message,true)}}
+async function saveAndAdvance(){if(skip){if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;await reloadState();restoreAnchor()}else{setStatus("현재 객체의 마지막 앵커입니다.")}return}if(!box)return setStatus("박스가 없습니다. 드래그로 입력하거나 K로 건너뛰기 사유를 선택하세요.",true);const persistedBox=storedBox(box);if(footAdjusted&&!footInside(persistedBox,foot))return setStatus("수정한 발점은 저장될 박스 안에 있어야 합니다. F로 다시 지정하세요.",true);try{const r=await request("/api/observation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload())});const savedRow=await r.json();saved=savedRow.row;dirty=false;markSaved();setStatus("관측행 저장됨");await reloadState();if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;restoreAnchor()}else{updateObjectInfo()}}catch(e){setStatus(e.message,true)}}
 function markUndo(){undoStack.push({box:box?{...box}:null,foot:foot?{...foot}:null,skip:skip?{...skip}:null,copied,footAdjusted,notes:document.getElementById("observationNotes").value});if(undoStack.length>10)undoStack.shift()}
 function undo(){if(!undoStack.length)return setStatus("되돌릴 입력이 없습니다.");const s=undoStack.pop();box=s.box;foot=s.foot;skip=s.skip;copied=s.copied;footAdjusted=s.footAdjusted;document.getElementById("observationNotes").value=s.notes;updateDirty();render()}
 function drawRectStart(e){const r=detail.getBoundingClientRect();const scaleX=crop.width/r.width,scaleY=crop.height/r.height;const x=(e.clientX-r.left)*scaleX+crop.left,y=(e.clientY-r.top)*scaleY+crop.top;return {x,y}}
 function zoomAroundPointer(e,factor){if(!crop)return;const r=detail.getBoundingClientRect(),p=drawRectStart(e),ratioX=(e.clientX-r.left)/r.width,ratioY=(e.clientY-r.top)/r.height;zoom=Math.max(1,Math.min(30,zoom*factor));const w=Math.round(3840/zoom),h=Math.round(2160/zoom);center={x:p.x+(0.5-ratioX)*w,y:p.y+(0.5-ratioY)*h};crop=window.calculateCrop(center.x,center.y,zoom);render();setStatus(`확대 ${zoom.toFixed(1)}× · 휠로 확대/축소`)}
 detail.addEventListener("wheel",e=>{e.preventDefault();zoomAroundPointer(e,e.deltaY<0?1.2:1/1.2)},{passive:false});
 detail.addEventListener("pointerdown",e=>{if(playing)return;detail.setPointerCapture(e.pointerId);const p=drawRectStart(e);if(footMode){if(!box){footMode=false;return setStatus("먼저 박스를 그린 뒤 F를 눌러 발점을 수정하세요.",true)}if(p.x<box.x1||p.x>box.x2||p.y<box.y1||p.y>box.y2)return setStatus("발점은 박스 안에서 클릭하세요. 확대하려면 마우스 휠을 사용하세요.",true);markUndo();foot=p;footAdjusted=true;footMode=false;updateDirty();render();setStatus("발점 수정됨");return}markUndo();const inBox=box&&p.x>=box.x1&&p.x<=box.x2&&p.y>=box.y1&&p.y<=box.y2;drag=inBox?{mode:"move",start:p,current:p,originalBox:{...box},originalFoot:foot?{...foot}:null,changed:false}:{mode:"draw",start:p,current:p,changed:false}});
-detail.addEventListener("pointermove",e=>{if(!drag){const p=drawRectStart(e);detail.style.cursor=box&&p.x>=box.x1&&p.x<=box.x2&&p.y>=box.y1&&p.y<=box.y2?"move":"crosshair";return}drag.current=drawRectStart(e);const dx=drag.current.x-drag.start.x,dy=drag.current.y-drag.start.y;if(Math.abs(dx)+Math.abs(dy)<1)return;drag.changed=true;skip=null;if(drag.mode==="move"){const b=drag.originalBox,w=b.x2-b.x1,h=b.y2-b.y1,x1=Math.min(Math.max(0,b.x1+dx),3840-w),y1=Math.min(Math.max(0,b.y1+dy),2160-h),actualX=x1-b.x1,actualY=y1-b.y1;box={x1,y1,x2:x1+w,y2:y1+h};if(drag.originalFoot)foot={x:drag.originalFoot.x+actualX,y:drag.originalFoot.y+actualY}}else{const a=drag.start,b=drag.current;footAdjusted=false;box={x1:Math.min(a.x,b.x),y1:Math.min(a.y,b.y),x2:Math.max(a.x,b.x),y2:Math.max(a.y,b.y)};foot={x:(box.x1+box.x2)/2,y:box.y2}}updateDirty();render()});
+detail.addEventListener("pointermove",e=>{if(!drag){const p=drawRectStart(e);detail.style.cursor=box&&p.x>=box.x1&&p.x<=box.x2&&p.y>=box.y1&&p.y<=box.y2?"move":"crosshair";return}drag.current=drawRectStart(e);const dx=drag.current.x-drag.start.x,dy=drag.current.y-drag.start.y;if(Math.abs(dx)+Math.abs(dy)<1)return;drag.changed=true;skip=null;if(drag.mode==="move"){const b=drag.originalBox,w=b.x2-b.x1,h=b.y2-b.y1,x1=Math.min(Math.max(0,b.x1+dx),3840-w),y1=Math.min(Math.max(0,b.y1+dy),2160-h),actualX=x1-b.x1,actualY=y1-b.y1;box={x1,y1,x2:x1+w,y2:y1+h};if(footAdjusted&&drag.originalFoot)foot={x:drag.originalFoot.x+actualX,y:drag.originalFoot.y+actualY};else foot=defaultFoot(box)}else{const a=drag.start,b=drag.current;footAdjusted=false;box={x1:Math.min(a.x,b.x),y1:Math.min(a.y,b.y),x2:Math.max(a.x,b.x),y2:Math.max(a.y,b.y)};foot=defaultFoot(box)}updateDirty();render()});
 detail.addEventListener("pointerup",()=>{if(!drag)return;const changed=drag.changed,mode=drag.mode;drag=null;if(changed&&box&&box.x2-box.x1>=1&&box.y2-box.y1>=1){updateDirty();setStatus(mode==="move"?"박스와 발점을 함께 이동했습니다 · Enter로 저장":"박스 입력됨 · Enter로 저장")}else{if(!changed)undoStack.pop();else if(mode==="draw"){box=null;foot=null;updateDirty()}render()}});
 overview.addEventListener("click",e=>{if(playing)return;const r=overview.getBoundingClientRect();const p=drawRectStartForOverview(e,r);center=p;crop=window.calculateCrop?window.calculateCrop(center.x,center.y,zoom):{left:Math.max(0,Math.round(center.x-1920/zoom)),top:Math.max(0,Math.round(center.y-1080/zoom)),width:Math.round(3840/zoom),height:Math.round(2160/zoom)};render()});
 function drawRectStartForOverview(e,r){return {x:(e.clientX-r.left)*3840/r.width,y:(e.clientY-r.top)*2160/r.height}}
@@ -792,7 +906,11 @@ document.getElementById("zoomOut").onclick=()=>{zoom=Math.max(1,zoom/1.5);crop=w
 document.getElementById("zoomReset").onclick=()=>{fitZoom();crop=window.calculateCrop?window.calculateCrop(center.x,center.y,zoom):crop;render()};
 document.getElementById("editFoot").onclick=()=>{footMode=!footMode;setStatus(footMode?"확대 입력창에서 새 발점을 클릭하세요.":"발점 수정 모드를 종료했습니다.")};
 document.getElementById("redraw").onclick=()=>{markUndo();box=null;foot=null;skip=null;copied=false;footAdjusted=false;updateDirty();render()};document.getElementById("undo").onclick=undo;
-document.getElementById("copyPrevious").onclick=()=>{const prev=currentObject().observations.filter(r=>+r.frame_index<frame).sort((a,b)=>+b.frame_index-+a.frame_index)[0];if(!prev)return setStatus("복사할 직전 GT 박스가 없습니다.",true);markUndo();skip=null;box={x1:+prev.x1,y1:+prev.y1,x2:+prev.x2,y2:+prev.y2};foot={x:+prev.foot_x,y:+prev.foot_y};copied=true;footAdjusted=prev.notes.includes("foot_adjusted");updateDirty();render();setStatus("직전 박스를 복사했습니다. Enter로 확정하면 notes에 copied_from_previous가 기록됩니다.")};
+function previousObservation(){return currentObject().observations.filter(r=>+r.frame_index<frame).sort((a,b)=>+b.frame_index-+a.frame_index)[0]||null}
+function setCopiedBox(prev){box={x1:+prev.x1,y1:+prev.y1,x2:+prev.x2,y2:+prev.y2};foot=defaultFoot(box);footAdjusted=false;copied=true;skip=null}
+document.getElementById("copyPrevious").onclick=()=>{const prev=previousObservation();if(!prev)return setStatus("복사할 직전 GT 박스가 없습니다.",true);markUndo();setCopiedBox(prev);updateDirty();render();setStatus("직전 박스를 복사했습니다. 위치를 조정한 뒤 Enter로 저장하세요.")};
+async function copyPreviousSaveNext(){const prev=previousObservation();if(!prev)return setStatus("복사할 직전 GT 박스가 없습니다.",true);setCopiedBox(prev);updateDirty();render();setStatus("현재 표시 중인 프레임에 직전 박스를 복사해 저장합니다.");await saveAndAdvance()}
+document.getElementById("copySaveNext").onclick=copyPreviousSaveNext;
 document.getElementById("saveNext").onclick=saveAndAdvance;
 document.getElementById("observationNotes").addEventListener("input",updateDirty);
 document.getElementById("skipButton").onclick=()=>{if(!localCanLeave())return;document.getElementById("skipModal").classList.add("open")};document.getElementById("cancelSkip").onclick=()=>document.getElementById("skipModal").classList.remove("open");
@@ -801,7 +919,7 @@ async function playAround(){if(playing){playing=false;playbackToken++;await load
 document.getElementById("playAround").onclick=playAround;
 document.getElementById("fullScreen").onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch(e){setStatus(`전체 화면 전환 실패: ${e.message}`,true)}};
 window.addEventListener("resize",()=>{if(image)render()});document.addEventListener("fullscreenchange",()=>{if(image)render()});
-document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName))return;if(e.key==="ArrowLeft")moveAnchor(-1);else if(e.key==="ArrowRight")moveAnchor(1);else if(e.key==="Enter"){e.preventDefault();saveAndAdvance()}else if(e.key.toLowerCase()==="k")document.getElementById("skipButton").click();else if(e.key.toLowerCase()==="n")moveObject(e.shiftKey?-1:1);else if(e.key.toLowerCase()==="f")document.getElementById("editFoot").click();else if(e.key.toLowerCase()==="c")document.getElementById("copyPrevious").click();else if(e.key.toLowerCase()==="p")playAround();else if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}else if(e.key==="+")document.getElementById("zoomIn").click();else if(e.key==="-")document.getElementById("zoomOut").click();else if(e.key==="0")document.getElementById("zoomReset").click();else if(e.key==="Escape"){drag=null;footMode=false;setStatus("현재 동작을 취소했습니다.")}});
+document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName))return;if(e.key==="ArrowLeft")moveAnchor(-1);else if(e.key==="ArrowRight")moveAnchor(1);else if(e.key==="Enter"){e.preventDefault();saveAndAdvance()}else if(e.key.toLowerCase()==="k")document.getElementById("skipButton").click();else if(e.key.toLowerCase()==="n")moveObject(e.shiftKey?-1:1);else if(e.key.toLowerCase()==="f")document.getElementById("editFoot").click();else if(e.key.toLowerCase()==="c")document.getElementById("copyPrevious").click();else if(e.key.toLowerCase()==="v")copyPreviousSaveNext();else if(e.key.toLowerCase()==="p")playAround();else if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}else if(e.key==="+")document.getElementById("zoomIn").click();else if(e.key==="-")document.getElementById("zoomOut").click();else if(e.key==="0")document.getElementById("zoomReset").click();else if(e.key==="Escape"){drag=null;footMode=false;setStatus("현재 동작을 취소했습니다.")}});
 window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
 async function init(){try{const r=await request("/api/state");state=await r.json();if(!state.objects.length)throw new Error("입력할 객체가 없습니다.");objectIndex=state.resume.objectIndex;anchorIndex=state.resume.anchorIndex;fitZoom();await reloadState();refreshObjectList();restoreAnchor()}catch(e){setStatus(e.message,true)}}
 init();
@@ -987,6 +1105,9 @@ class AnnotationHandler(BaseHTTPRequestHandler):
 
 def run_box_mode(args: argparse.Namespace) -> None:
     state = AnnotationState.from_paths()
+    if args.size_outliers:
+        size_outliers_only(state)
+        return
     if args.validate_only:
         validate_only(state)
         return

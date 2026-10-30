@@ -156,6 +156,104 @@ class GtBoxAnnotationTest(unittest.TestCase):
         self.assertIn("copied_from_previous", second["notes"])
         self.assertIn("foot_adjusted", second["notes"])
 
+    def test_stationary_repeated_boxes_derive_default_foot_from_stored_box(self) -> None:
+        state = self._state()
+        fractional_box = {"x1": 48.06, "y1": 245.1, "x2": 150.2, "y2": 291.78}
+        stale_client_foot = {"x": 99.06, "y": 291.78}
+        first = state.save_observation(
+            "P001", 4196, fractional_box, foot=stale_client_foot
+        )
+        second = state.save_observation(
+            "P001", 4200, fractional_box, foot=stale_client_foot
+        )
+
+        for row in (first, second):
+            self.assertEqual((row["x1"], row["y1"], row["x2"], row["y2"]),
+                             ("48", "245", "150", "292"))
+            self.assertEqual(row["foot_x"], "99.0")
+            self.assertEqual(row["foot_y"], "292.0")
+        state.validate_work()
+
+    def test_copy_after_save_recomputes_default_foot_and_records_copy(self) -> None:
+        state = self._state()
+        previous = state.save_observation(
+            "P001",
+            4196,
+            {"x1": 10, "y1": 20, "x2": 30, "y2": 60},
+        )
+        copied = state.save_observation(
+            "P001",
+            4200,
+            {"x1": 11.2, "y1": 21.1, "x2": 31.2, "y2": 61.4},
+            foot={"x": float(previous["foot_x"]), "y": float(previous["foot_y"])},
+            copied_from_previous=True,
+        )
+
+        self.assertEqual(copied["foot_x"], "21.0")
+        self.assertEqual(copied["foot_y"], "61.0")
+        self.assertIn("copied_from_previous", copied["notes"])
+        self.assertNotIn("foot_adjusted", copied["notes"])
+        state.validate_work()
+
+    def test_moving_box_recomputes_default_foot_instead_of_reusing_old_point(self) -> None:
+        state = self._state()
+        previous = state.save_observation(
+            "P001", 4196, {"x1": 10, "y1": 20, "x2": 30, "y2": 60}
+        )
+        moved = state.save_observation(
+            "P001",
+            4200,
+            {"x1": 20.2, "y1": 35.4, "x2": 42.2, "y2": 78.4},
+            foot={"x": float(previous["foot_x"]), "y": float(previous["foot_y"])},
+        )
+
+        self.assertEqual(moved["foot_x"], "31.0")
+        self.assertEqual(moved["foot_y"], "78.0")
+        self.assertIn("else foot=defaultFoot(box)", annotation.PAGE_HTML)
+        state.validate_work()
+
+    def test_zoom_scale_boundary_points_are_safe_after_box_rounding(self) -> None:
+        state = self._state()
+        for frame, zoom in zip((4196, 4200, 4202, 4226), (1, 3, 12, 30)):
+            crop = {
+                "left": 0,
+                "top": 0,
+                "width": round(3840 / zoom),
+                "height": round(2160 / zoom),
+            }
+            canvas_width, canvas_height = 1280.0, 720.0
+            first = annotation.canvas_to_source(
+                50.4 * canvas_width / crop["width"],
+                240.4 * canvas_height / crop["height"],
+                canvas_width,
+                canvas_height,
+                crop,
+            )
+            last = annotation.canvas_to_source(
+                150.3 * canvas_width / crop["width"],
+                291.4 * canvas_height / crop["height"],
+                canvas_width,
+                canvas_height,
+                crop,
+            )
+            row = state.save_observation(
+                "P001",
+                frame,
+                {"x1": first[0], "y1": first[1], "x2": last[0], "y2": last[1]},
+            )
+            self.assertEqual(row["foot_y"], row["y2"] + ".0")
+        state.validate_work()
+
+    def test_f_adjusted_foot_point_remains_strict(self) -> None:
+        with self.assertRaisesRegex(annotation.AnnotationError, "foot point must lie inside"):
+            self._state().save_observation(
+                "P001",
+                4196,
+                {"x1": 10, "y1": 20, "x2": 30, "y2": 60},
+                foot={"x": 31, "y": 60},
+                foot_adjusted=True,
+            )
+
     def test_skip_is_persisted_and_counts_as_resolved(self) -> None:
         state = self._state()
         state.save_skip("P001", 4196, "not_found", "not visible")
@@ -177,6 +275,31 @@ class GtBoxAnnotationTest(unittest.TestCase):
         self.assertIn("P001 (person): 2행", summary)
         self.assertIn("not_found (1): 4238", summary)
         self.assertIn("occluded_more_than_marked (1): 4256", summary)
+
+    def test_size_outliers_lists_rows_at_least_forty_percent_above_object_median(self) -> None:
+        state = self._state()
+        for frame, width in ((4196, 10), (4200, 10), (4202, 14)):
+            state.save_observation(
+                "P001",
+                frame,
+                {"x1": 10, "y1": 20, "x2": 10 + width, "y2": 40},
+            )
+
+        report = annotation.format_size_outliers(self._state())
+
+        self.assertIn("size outliers: 1행", report)
+        self.assertIn("P001 (person) frame 4202", report)
+        self.assertIn("14x20 px; median 10x20 px; 폭 1.40x", report)
+
+    def test_v_shortcut_copies_recomputes_saves_once_and_advances(self) -> None:
+        html = annotation.PAGE_HTML
+        self.assertIn('id="copySaveNext"', html)
+        self.assertIn("function previousObservation()", html)
+        self.assertIn("function setCopiedBox(prev)", html)
+        self.assertIn("foot=defaultFoot(box);footAdjusted=false;copied=true", html)
+        self.assertIn("async function copyPreviousSaveNext()", html)
+        self.assertIn("await saveAndAdvance()", html)
+        self.assertIn('e.key.toLowerCase()==="v")copyPreviousSaveNext()', html)
 
     def test_state_payload_includes_resume_progress_and_user_gt_overlays(self) -> None:
         state = self._state()
@@ -202,7 +325,21 @@ class GtBoxAnnotationTest(unittest.TestCase):
                 4196,
                 {"x1": 10, "y1": 20, "x2": 30, "y2": 60},
                 foot={"x": 31, "y": 60},
+                foot_adjusted=True,
             )
+
+    def test_foot_validation_allows_one_pixel_rounding_only_for_default(self) -> None:
+        state = self._state()
+        row = state.save_observation(
+            "P001", 4196, {"x1": 10, "y1": 20, "x2": 30, "y2": 60}
+        )
+        row["foot_x"] = "30.75"
+        state.observations = [row]
+        state.validate_work()
+
+        row["notes"] = "foot_adjusted"
+        with self.assertRaisesRegex(annotation.AnnotationError, "foot point must lie inside"):
+            state.validate_work()
 
     def test_validate_work_rejects_class_mismatch_duplicate_and_occluded_frame(self) -> None:
         state = self._state()
@@ -239,6 +376,8 @@ class GtBoxAnnotationTest(unittest.TestCase):
         self.assertIn('mode:"move"', annotation.PAGE_HTML)
         self.assertIn("drag.originalFoot.x+actualX", annotation.PAGE_HTML)
         self.assertIn('detail.style.cursor=box&&', annotation.PAGE_HTML)
+        self.assertIn('id="copySaveNext"', annotation.PAGE_HTML)
+        self.assertIn("C 복사 후 조정", annotation.PAGE_HTML)
 
 
 if __name__ == "__main__":
