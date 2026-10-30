@@ -1,6 +1,9 @@
 gt_object_id,frame_index,reason,notes
 C001,4766,occluded_more_than_marked,occluded_more_than_marked
 C001,4768,occluded_more_than_marked,occluded_more_than_marked
+C004,5256,occluded_more_than_marked,occluded_more_than_marked
+M001,4850,ambiguous_identity,occluded_more_than_marked
+M002,5876,not_found,occluded_more_than_marked
 P002,4736,other,화면 밖으로 나가서 안 보임
 P002,4766,other,화면 밖으로 나가서 안 보임
 P002,4792,other,화면 밖으로 나가서 안 보임
@@ -10,3 +13,23 @@ P004,4946,not_found,occluded_more_than_marked
 P004,4976,not_found,occluded_more_than_marked
 P004,5000,not_found,occluded_more_than_marked
 P005,5966,not_found,occluded_more_than_marked
+P006,4946,occluded_more_than_marked,occluded_more_than_marked
+P006,4950,occluded_more_than_marked,occluded_more_than_marked
+P007,4522,occluded_more_than_marked,occluded_more_than_marked
+P008,4450,occluded_more_than_marked,occluded_more_than_marked
+P009,4450,occluded_more_than_marked,occluded_more_than_marked
+P011,4436,occluded_more_than_marked,occluded_more_than_marked
+P012,4464,occluded_more_than_marked,occluded_more_than_marked
+P013,4286,occluded_more_than_marked,occluded_more_than_marked
+P017,4850,occluded_more_than_marked,occluded_more_than_marked
+P017,4852,occluded_more_than_marked,occluded_more_than_marked
+P017,4856,occluded_more_than_marked,occluded_more_than_marked
+P017,5200,occluded_more_than_marked,occluded_more_than_marked
+P018,5168,ambiguous_identity,occluded_more_than_marked
+P018,5170,ambiguous_identity,occluded_more_than_marked
+P018,5186,ambiguous_identity,occluded_more_than_marked
+P018,5216,not_found,occluded_more_than_marked
+P019,5126,not_found,occluded_more_than_marked
+P019,5156,not_found,occluded_more_than_marked
+P019,5166,not_found,occluded_more_than_marked
+P020,5454,not_found,occluded_more_than_marked
