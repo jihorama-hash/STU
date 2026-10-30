@@ -1,4 +1,12 @@
 gt_object_id,frame_index,reason,notes
+C001,4766,occluded_more_than_marked,occluded_more_than_marked
+C001,4768,occluded_more_than_marked,occluded_more_than_marked
 P002,4736,other,화면 밖으로 나가서 안 보임
 P002,4766,other,화면 밖으로 나가서 안 보임
 P002,4792,other,화면 밖으로 나가서 안 보임
+P004,4886,not_found,occluded_more_than_marked
+P004,4930,occluded_more_than_marked,occluded_more_than_marked
+P004,4946,not_found,occluded_more_than_marked
+P004,4976,not_found,occluded_more_than_marked
+P004,5000,not_found,occluded_more_than_marked
+P005,5966,not_found,occluded_more_than_marked
