@@ -1,10 +1,11 @@
 gt_object_id,start_frame_index,end_frame_index,visibility_status,occlusion_reason,notes
 P001,4196,4238,visible, ,
-P002,4196,4792,visible,,
+P002,4196,4676,visible,,
+P002,4678,4792,not_observable,frame_boundary,screen exit; original note: 화면 밖으로 나가서 안 보임
 P003,4196,4792,visible, ,
 P004,4196,4886,visible,,
 P004,4888,4928,fully_occluded,tree,
-P004,4930,5000,partially_occluded,tree,
+P004,4930,5000,not_observable,tree,"reviewed not_found anchors: 4930,4946,4976,5000"
 P005,4196,5850,visible,,
 P005,5852,5994,partially_occluded,tree,
 C001,4196,4532,visible,,
@@ -116,7 +117,7 @@ P035,5760,5904,visible,,
 P035,5906,5930,partially_occluded,canopy,
 P035,5932,5994,visible,,
 P036,5800,5994,visible,,
-P037,5820,5994,fully_occluded,canopy,
+P037,5820,5994,visible,,
 P038,5968,5994,visible,,
 C002,4320,4732,visible,,
 C003,4466,4996,visible,,
