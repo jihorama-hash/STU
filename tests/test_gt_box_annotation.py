@@ -262,6 +262,27 @@ class GtBoxAnnotationTest(unittest.TestCase):
         self.assertEqual(resumed.summary()["missing"], 6)
         self.assertEqual(resumed.current_skip("P001", 4196)["reason"], "not_found")
 
+    def test_skip_form_clears_reason_and_notes_when_opened_and_after_save(self) -> None:
+        html = annotation.PAGE_HTML
+        self.assertIn(
+            'function resetSkipForm(){document.getElementById("skipReason").value="";'
+            'document.getElementById("skipNotes").value=""}',
+            html,
+        )
+
+        open_handler = html[
+            html.index('document.getElementById("skipButton").onclick='):
+            html.index('document.getElementById("cancelSkip").onclick=')
+        ]
+        self.assertLess(open_handler.index("resetSkipForm()"), open_handler.index('.classList.add("open")'))
+
+        save_handler = html[
+            html.index('document.getElementById("confirmSkip").onclick='):
+            html.index("async function playAround()")
+        ]
+        self.assertLess(save_handler.index('await request("/api/skip"'), save_handler.index("resetSkipForm()"))
+        self.assertLess(save_handler.index("resetSkipForm()"), save_handler.index('.classList.remove("open")'))
+
     def test_skip_summary_groups_frames_by_object_and_reason(self) -> None:
         state = self._state()
         state.save_skip("P001", 4238, "not_found", "off screen")
