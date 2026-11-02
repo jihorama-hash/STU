@@ -5,7 +5,7 @@ P002,4678,4792,not_observable,frame_boundary,screen exit; original note: 화면 
 P003,4196,4792,visible, ,
 P004,4196,4886,visible,,
 P004,4888,4928,fully_occluded,tree,
-P004,4930,5000,not_observable,tree,"reviewed not_found anchors: 4930,4946,4976,5000"
+P004,4930,5000,fully_occluded,tree,"reviewed not_found anchors: 4930,4946,4976,5000"
 P005,4196,5850,visible,,
 P005,5852,5994,partially_occluded,tree,
 C001,4196,4532,visible,,

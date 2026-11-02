@@ -228,8 +228,29 @@ classwise NMS 0.50, class-aware ByteTrack 조건으로 비교했다.
 
 - 연구 범위를 개선 전 현황 진단에서 정문 교차로의 개선 전후 효과 분석으로 확장한다. 개선 전 영상 8편은 재취득할 수 없는
   유일한 기록이며, 개선 후 드론 촬영은 공사 완료 후 한 달 이내에 계획한다.
+
 - 촬영 지점은 개선안 도면 A4의 정문 인근 3번(정문 교차로)이고, 시공안은 "정문 교차로 검토안"의 개선안 3지교차로다.
 - 개선 전후 자료는 같은 파이프라인 버전과 설정으로 분석하고, 각 시기의 블라인드 GT로 검출·추적 정확도를 확인한다.
 - 대조 지점이 없고 교내 공통 조치도 병행되므로 결과는 정문 교차로 단독 효과가 아니라 **개선 패키지 전체의 효과**로 해석한다.
 - 촬영 조건·분석 항목과 한계는 `docs/methodology/AFTER_FILMING_PLAN.md` 및
   `docs/methodology/BEFORE_AFTER_ANALYSIS_PLAN.md`를 따른다. CEI, 지점 PDI·안전등급, 3곳 통계적 순위 불가 결정은 유지한다.
+
+## 2026-11-02 — P037 visibility 재판정
+
+- 사용자가 P037은 DJI_0482의 5820–5994 프레임 동안 양산을 쓴 보행자이며 visible이라고 확인했다.
+- 사용자가 Gate 3-A2 visibility 작업표에서 P037을 `visible`로 정리했다. 이 작업표를 canonical GT에 반영해
+  `visibility_status=visible`, `denominator_eligible=true`, `occlusion_summary=none`으로 갱신했다.
+- 위치 앵커는 시작·끝 및 30 source-frame grid 기준 7개이며, 기존 위치·skip 작업 파일은 그대로 보존했다.
+
+## 2026-11-02 — R01 위치 GT skip 및 visibility 정리
+
+- R01 위치 입력은 970개 eligible anchor 중 manual 관측 960개와 검토된 skip 10개로 완료했다. 미입력 anchor는 0개다.
+- P002는 마지막 manual 위치 뒤 프레임 경계에서 위치·동일성을 판독할 수 없는 4678–4792 구간을
+  `not_observable`/`frame_boundary`로 반영했다. 사용자가 4706 관측을 skip으로 바꾼 것을 확인해
+  시작 경계 4678을 유지했다. P004는 기존 fully-occluded 구간(4888–4928)을 유지하고,
+  승인에 따라 수목 가림 구간 4930–5000을 `fully_occluded`/`vegetation`으로 반영했다.
+- 비분모 구간에 포함된 skip 행을 작업표에서 제거하고 나머지 skip 행의 사유·프레임은 보존했다.
+  위치 입력 작업표는 유지했으며, 별도 결정적 변환기로 canonical 위치관측 960행을 생성했다.
+- 변경 전 작업표, 위치·skip 파일, canonical GT와 manifest 백업은 로컬
+  `outputs/diagnostics/R01_visibility_backup_20261102_final/`에 보존했다. 작업표 검증과 canonical 변환 후
+  위치 GT validator는 anchors=970, observations=960, skips=10, missing=0을 확인했다.

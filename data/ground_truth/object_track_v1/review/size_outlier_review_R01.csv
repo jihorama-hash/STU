@@ -1,0 +1,22 @@
+schema_version,gt_dataset_id,video_id,gt_object_id,object_class,frame_index,box_width_px,box_height_px,median_width_px,median_height_px,width_ratio,height_ratio,review_status,reviewer,review_timestamp_utc,notes
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C001,car,4256,164,276,265,188,0.6189,1.4681,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C001,car,4286,185,276,265,188,0.6981,1.4681,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C003,car,4856,199,296,293,206,0.6792,1.4369,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,C003,car,4886,199,296,293,206,0.6792,1.4369,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P001,person,4196,102,47,66,47,1.5455,1.0000,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P010,person,4736,113,59,78,68,1.4487,0.8676,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P010,person,4766,113,59,78,68,1.4487,0.8676,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P010,person,4796,113,59,78,68,1.4487,0.8676,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P010,person,4826,113,59,78,68,1.4487,0.8676,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5186,95,43,62,65,1.5323,0.6615,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5216,95,43,62,65,1.5323,0.6615,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5246,95,43,62,65,1.5323,0.6615,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5336,110,44,62,65,1.7742,0.6769,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5366,103,48,62,65,1.6613,0.7385,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5396,100,46,62,65,1.6129,0.7077,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5426,100,46,62,65,1.6129,0.7077,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P015,person,5456,100,46,62,65,1.6129,0.7077,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P023,person,5636,104,59,73,55,1.4247,1.0727,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P023,person,5666,104,59,73,55,1.4247,1.0727,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P024,person,5336,65,51,46,54,1.4130,0.9444,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.
+size_outlier_review_v1,DJI_0482_gate3a_140_200_v1,DJI_0482,P024,person,5364,70,62,46,54,1.5217,1.1481,user_reviewed_ok,R01,2026-11-02T07:54:43Z,사용자 확인: 정상; 관측 박스 변경 없음.

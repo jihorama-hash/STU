@@ -1,0 +1,12 @@
+{
+  "created_at_utc": "2026-11-02T07:54:43Z",
+  "code_commit": "94e5321",
+  "source_video": "data/raw/before/DJI_0482.MP4",
+  "source_video_sha256": "168c20eede240300371aff34a53d2617a4f1f5fe8b2dad37f16016c016c39cf0",
+  "source_observations_file": "data/ground_truth/object_track_v1/review/gt_observations_R01.csv",
+  "source_observations_sha256": "d5a5db4cdeb08fe2346cc8cfd245acf7c4d8a73e5c0471e252af327299ba38df",
+  "outlier_rule": "box width or height >= 1.40x per-object median",
+  "review_decision": "user_reviewed_ok for every current outlier row",
+  "observations_modified": false,
+  "rows": 21
+}
