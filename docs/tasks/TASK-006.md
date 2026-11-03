@@ -138,7 +138,7 @@ association은 자동 생성값이므로 모든 수치는 잠정값(`provisional
 - 실행한 명령과 결과: 전체 영상 GPU raw 실행은 사용자가 실행했으며 `_02`에서 `processed_frames=4361`,
   `device="0"`을 확인했다. 같은 실행의 filtered·merged 단계와 3단계 × IoU 0.5/0.3 채점을 수행했다.
   프레임 정렬 진단에서 frame 4196 순차 디코드와 seek 결과가 픽셀 단위로 일치했고, 공통 시간 오프셋은
-  확인되지 않았다. 최종 문서 커밋 후 `.venv/bin/pytest` 전체 실행 결과를 기록한다.
+  확인되지 않았다. `.venv/bin/pytest`: 84 passed (2.60초).
 - 채점한 실행(evaluation_run_id)과 실행계보: `r01_gtv1_scoring_20261103_02`, 입력 실행
   `r01_baseline_yolo11m_full_20261103_02`. 평가 코드 커밋은 `a0fae002a27a6688a14fa9856f8d3e79c176ddce`
   (`worktree_clean=true`). 출력은 `outputs/evaluation/r01_gtv1_scoring_20261103_02/`이며 각 산출물의
