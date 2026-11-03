@@ -1,5 +1,5 @@
 schema_version: object_track_evaluation_v1
-evaluation_run_id: r01_gtv1_scoring_20261103_01
+evaluation_run_id: r01_gtv1_scoring_20261103_02
 evidence:
   mot16: https://arxiv.org/abs/1603.00831
   hota: https://arxiv.org/abs/2009.07736
@@ -48,6 +48,7 @@ ground_truth:
     observations: gt_observations.csv
 automatic_run:
   evaluation_run_id: r01_baseline_yolo11m_full_20261103_02
+  expected_git_commit: e9d7c75
   frame_step: 2
   directory: outputs/evaluation_runs/r01_baseline_yolo11m_full_20261103_02
   stages:

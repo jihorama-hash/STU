@@ -53,6 +53,14 @@ class ObjectTrackEvaluationTest(unittest.TestCase):
         self.assertEqual(len({match[0] for match in matches}), 2)
         self.assertEqual(len({match[1] for match in matches}), 2)
 
+    def test_below_threshold_pairs_are_zeroed_before_assignment(self):
+        gt_boxes = [gt("g1", box=(8, 2, 20, 10)), gt("g2", box=(14, 4, 26, 12))]
+        auto_boxes = [auto("a1", box=(4, 4, 16, 10)), auto("a2", box=(12, 2, 22, 10))]
+        # Raw-IoU assignment chooses the diagonal (0.4, 0.375), then rejects
+        # both. Zeroing sub-threshold edges first lets the valid 0.571 edge win.
+        matches = match_frame(gt_boxes, auto_boxes, 0.5)
+        self.assertEqual([(gt_index, auto_index) for gt_index, auto_index, _ in matches], [(0, 1)])
+
     def test_mt_pt_ml_boundaries(self):
         self.assertEqual(trajectory_labels(0.8), "MT")
         self.assertEqual(trajectory_labels(0.2), "PT")

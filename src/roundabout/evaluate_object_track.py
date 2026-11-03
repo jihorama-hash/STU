@@ -15,8 +15,10 @@ from typing import Iterable
 import numpy as np
 import yaml
 from scipy.optimize import linear_sum_assignment
-from .third_party.hota import HOTA
 from .environment import opencv_environment
+from .third_party.clear import CLEAR
+from .third_party.hota import HOTA
+from .third_party.identity import Identity
 
 
 ASSOCIATION_FIELDS = [
@@ -85,11 +87,13 @@ def match_frame(
         [box_iou(g["box"], a["box"]) for a in auto_boxes]
         for g in gt_boxes
     ], dtype=float)
-    rows, cols = linear_sum_assignment(1.0 - similarities)
+    accepted_similarities = similarities.copy()
+    accepted_similarities[accepted_similarities < threshold] = 0.0
+    rows, cols = linear_sum_assignment(1.0 - accepted_similarities)
     return [
         (int(row), int(col), float(similarities[row, col]))
         for row, col in zip(rows, cols)
-        if similarities[row, col] >= threshold
+        if accepted_similarities[row, col] > 0.0
     ]
 
 
@@ -185,8 +189,11 @@ def _validate_inputs(config: dict[str, object], root: Path) -> tuple[
     lineage = json.loads(lineage_path.read_text(encoding="utf-8"))
     if lineage["git"]["worktree_clean"] is not True:
         raise EvaluationError("Automatic run was not recorded with a clean worktree")
-    if not str(lineage["git"]["commit"]).startswith("e9d7c75"):
-        raise EvaluationError("Automatic run commit is not the approved e9d7c75 commit")
+    expected_commit = str(run_config["expected_git_commit"])
+    if not str(lineage["git"]["commit"]).startswith(expected_commit):
+        raise EvaluationError(
+            "Automatic run commit does not match configured expected_git_commit"
+        )
     if lineage["evaluation_run_id"] != run_config["evaluation_run_id"]:
         raise EvaluationError("Evaluation run ID mismatch")
     run_dir = root / str(run_config["directory"])
@@ -271,54 +278,64 @@ def _hota_metrics(
     }
 
 
+def _trackeval_sequence_data(
+    frames: list[int],
+    gt_by_frame: dict[int, list[dict[str, object]]],
+    auto_by_frame: dict[int, list[dict[str, object]]],
+) -> dict[str, object]:
+    gt_ids = sorted({str(row["gt_object_id"]) for f in frames for row in gt_by_frame[f]})
+    auto_ids = sorted({str(row["track_id"]) for f in frames for row in auto_by_frame[f]})
+    gt_index = {value: index for index, value in enumerate(gt_ids)}
+    auto_index = {value: index for index, value in enumerate(auto_ids)}
+    data: dict[str, object] = {
+        "num_timesteps": len(frames),
+        "num_gt_dets": sum(len(gt_by_frame[f]) for f in frames),
+        "num_tracker_dets": sum(len(auto_by_frame[f]) for f in frames),
+        "num_gt_ids": len(gt_ids),
+        "num_tracker_ids": len(auto_ids),
+        "gt_ids": [], "tracker_ids": [], "similarity_scores": [],
+    }
+    for frame in frames:
+        gt_rows, auto_rows = gt_by_frame[frame], auto_by_frame[frame]
+        data["gt_ids"].append(np.array(
+            [gt_index[str(row["gt_object_id"])] for row in gt_rows], dtype=int
+        ))
+        data["tracker_ids"].append(np.array(
+            [auto_index[str(row["track_id"])] for row in auto_rows], dtype=int
+        ))
+        data["similarity_scores"].append(np.array([
+            [box_iou(g["box"], a["box"]) for a in auto_rows] for g in gt_rows
+        ], dtype=float).reshape(len(gt_rows), len(auto_rows)))
+    return data
+
+
 def _frame_metrics(
     frames: list[int],
     gt_by_frame: dict[int, list[dict[str, object]]],
     auto_by_frame: dict[int, list[dict[str, object]]],
     threshold: float,
 ) -> dict[str, object]:
-    tp = fp = fn = id_switches = 0
-    pair_counts: Counter[tuple[str, str]] = Counter()
     class_matrix: Counter[tuple[str, str]] = Counter()
-    ordered_identity_matches: list[tuple[str, str]] = []
-    for frame in frames:
+    trackeval_data = _trackeval_sequence_data(frames, gt_by_frame, auto_by_frame)
+    clear = CLEAR({"THRESHOLD": threshold}).eval_sequence(trackeval_data)
+    identity = Identity({"THRESHOLD": threshold}).eval_sequence(trackeval_data)
+    for frame, (gt_indices, auto_indices) in zip(frames, clear["matches_by_timestep"]):
         gt_rows, auto_rows = gt_by_frame[frame], auto_by_frame[frame]
-        matches = match_frame(gt_rows, auto_rows, threshold)
-        tp += len(matches)
-        fn += len(gt_rows) - len(matches)
-        fp += len(auto_rows) - len(matches)
-        for gi, ai, iou in matches:
+        for gi, ai in zip(gt_indices, auto_indices):
             gt_row, auto_row = gt_rows[gi], auto_rows[ai]
-            gt_id, auto_id = str(gt_row["gt_object_id"]), str(auto_row["track_id"])
-            pair_counts[(gt_id, auto_id)] += 1
-            ordered_identity_matches.append((gt_id, auto_id))
             class_matrix[(str(gt_row["object_class"]), str(auto_row["object_class"]))] += 1
-    id_switches = count_id_switches(ordered_identity_matches)
+    tp, fp, fn = int(clear["CLR_TP"]), int(clear["CLR_FP"]), int(clear["CLR_FN"])
     gt_dets = tp + fn
     precision = tp / (tp + fp) if tp + fp else 0.0
-    mota = 1.0 - (fn + fp + id_switches) / gt_dets if gt_dets else 0.0
-    gt_totals: Counter[str] = Counter()
-    auto_totals: Counter[str] = Counter()
-    for (gt_id, auto_id), count in pair_counts.items():
-        gt_totals[gt_id] += count
-        auto_totals[auto_id] += count
-    idtp = 0
-    if gt_totals and auto_totals:
-        g_ids, a_ids = sorted(gt_totals), sorted(auto_totals)
-        matrix = np.zeros((len(g_ids), len(a_ids)), dtype=int)
-        gi = {item: i for i, item in enumerate(g_ids)}
-        ai = {item: i for i, item in enumerate(a_ids)}
-        for (g, a), count in pair_counts.items():
-            matrix[gi[g], ai[a]] = count
-        rows, cols = linear_sum_assignment(-matrix)
-        idtp = int(matrix[rows, cols].sum())
-    idfn, idfp = gt_dets - idtp, (tp + fp) - idtp
-    idf1 = 2 * idtp / (2 * idtp + idfn + idfp) if 2 * idtp + idfn + idfp else 0.0
     return {
         "gt_detections": gt_dets, "auto_detections": tp + fp, "tp": tp,
         "fp": fp, "fn": fn, "precision_pre_audit": precision,
-        "mota": mota, "idf1": idf1, "idsw": id_switches,
-        "idtp": idtp,
+        "mota": float(clear["MOTA"]), "idf1": float(identity["IDF1"]),
+        "idsw": int(clear["IDSW"]), "idtp": int(identity["IDTP"]),
+        "trackeval_clear": {
+            "CLR_TP": int(clear["CLR_TP"]), "CLR_FP": int(clear["CLR_FP"]),
+            "CLR_FN": int(clear["CLR_FN"]),
+        },
         "class_confusion_matrix": {
             gt_class: dict(Counter({auto_class: count for (g, auto_class), count
                                     in class_matrix.items() if g == gt_class}))
