@@ -1,5 +1,19 @@
 # 의사결정 기록
 
+## 2026-11-03 — OpenCV 배포판 통일
+
+- 분석·검출 환경은 `opencv-python` 배포판 하나를 사용한다. `pyproject.toml`의 범위는
+  `opencv-python>=4.9,<6`이며, OpenCV 5.0.0.93을 포함한다.
+- TASK-001에서 선택했던 `opencv-python-headless`는 Ultralytics와 Supervision이
+  `opencv-python`을 요구하는 현재 의존성 구성과 충돌해 변경한다. 같은 환경에 두 배포판을
+  함께 두면 `cv2` 파일을 서로 덮어쓸 수 있으므로 병용하지 않는다.
+- `_02` 실행 당시 패키지 배포판은 `opencv-python==5.0.0.93`으로 추정한다. 근거는
+  2026-10-27 설치 기록 및 TrackEval 설치 로그의 `opencv-python ... already satisfied`다.
+- 필터·병합 산출물은 별도 진단 실행에서 `opencv-python-headless==4.14.0.94`로 재생성해
+  CSV SHA-256이 `_02`와 일치했다. 이 확인은 필터·병합 결과의 재현성만 보여주며, `_02`의
+  검출 런타임 배포판을 직접 증명하지는 않는다.
+- 이후 실행계보에는 `cv2` 런타임 버전과 이를 제공하는 배포 패키지명·버전을 기록한다.
+
 ## 2026-07-30 — 재구축 및 데모 대비
 
 - 기존 분석 결과를 확정값으로 승계하지 않는다.
@@ -264,3 +278,40 @@ classwise NMS 0.50, class-aware ByteTrack 조건으로 비교했다.
   `gt_observations.csv` 960행, `2cd303f453919d0021797ae528fac5f22661ab851c9116b884bd642e4fb31658`.
 - 해시는 파일 바이트 전체의 SHA-256이다. association, interaction, auto-track audit은 이 스냅샷에서 제외한다.
 - 한계와 미해결: 복사 박스 후보 C004 4826, C005 5186, P006 4706은 육안 미확인.
+
+## 2026-11-03 — TASK-006 채점용 roadway mask 선택
+
+- TASK-006의 DJI_0482 filtered 실행에는 `configs/baseline.json`의
+  `data/calibration/by_video/manifest.json`이 가리키는 by_video roadway mask를 사용한다.
+- 근거: frame 4196 비교에서 legacy mask는 DJI_0481 기준 위치 그대로여서 DJI_0482에서 아래로
+  밀리고 교통섬·남측 연석과 불일치한다. by_video mask는 legacy mask를 현재 homography로
+  변환한 결과이며, 원본 legacy와 생성 스크립트로 재현한 결과가 픽셀 단위로 일치한다.
+  두 후보의 vehicle exclusion mask는 같은 파일이다.
+- 적용 범위는 TASK-006 채점에 한정한다. 이 선택은 homography 또는 roadway mask의
+  프로젝트 정본을 결정하지 않는다.
+
+## 2026-11-03 — TASK-006 자동 궤적 채점 규칙
+
+- **매칭:** IoU 0.5를 공식 기준, 0.3을 민감도 기준으로 함께 보고한다. 클래스와 무관하게
+  프레임별 헝가리안 일대일 매칭을 하고 클래스 일치는 별도로 집계한다.
+- **궤적 완전성:** Mostly Tracked(MT)는 분모 앵커의 80% 이상, Mostly Lost(ML)는 20% 미만,
+  나머지는 Partially Tracked(PT)다. 이는 ID 유지와 무관하다.
+- **종합 지표:** HOTA, DetA, AssA, LocA를 α=0.05~0.95(19개)의 평균과 α=0.5 값으로
+  보고한다. IDF1, IDSW, MOTA도 병기한다. HOTA 코드는 공식
+  `JonathonLuiten/TrackEval` commit `12c8791b303e0a0b50f753af204249e622d0281a`에서
+  가져와 `src/roundabout/third_party/hota.py`에 최소 NumPy 2 호환 변경과 함께 포함했다.
+  소규모 parity 테스트에서 포크·공식 upstream·포함 코드의 19 α 결과가 일치했다.
+- **운영 규칙 A:** 시간 허용오차는 0 frame이다. GT anchor frame과 같은 frame의 자동 박스만
+  매칭한다. 처리 대상 frame step은 2이며 모든 GT frame이 처리 격자에 포함돼야 한다.
+- **운영 규칙 B:** 분모는 `gt_observations.csv` 960행이다. 검토 skip 10건은 분모에서
+  제외하고 목록을 별도 보고한다.
+- **운영 규칙 C:** 프레임 지표는 complete frame에서만 계산한다. complete frame은 그 시점에
+  분모 대상인 객체 전원에게 GT 박스가 있는 frame이다. 공통 30-frame grid 60개 중 skip이
+  걸린 frame을 제외하여 재계산한 complete frame은 54개다.
+- **운영 규칙 D:** GT person은 auto person, GT car는 auto car/bus/truck, GT motorcycle은
+  auto motorcycle과 호환한다. 나머지는 `class_match=mismatch`로 하고 혼동행렬을 보고한다.
+- **운영 규칙 E:** 한 auto ID가 객체의 분모 anchor 80% 이상을 덮으면 `complete`, 하나 이상
+  매칭됐으나 complete가 아니면 `partial`, 매칭이 없으면 `missed`다. 최대 연속 누락은 약
+  1초 anchor 해상도로 계산해 보고만 한다.
+- **운영 규칙 F:** 이번 TASK에서 GT manifest는 변경하지 않는다. 실행계보는 각 평가 출력의
+  `run_lineage.json`에 기록한다.

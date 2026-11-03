@@ -19,7 +19,7 @@ STU 통합 직후 남은 기록·설정 불일치 세 가지를 정리한다. �
 
 ### 1. 검출 의존성을 `pyproject.toml`에 반영
 
-- 현재 `analysis` extra에는 numpy, opencv-python-headless, pandas만 있다. 그런데
+- 당시 `analysis` extra에는 numpy, opencv-python-headless, pandas만 있었다. 그런데
   `src/roundabout/detect_track.py`는 `torch`, `ultralytics`, `supervision`을 import한다.
 - `detection` extra를 새로 만들어 `ultralytics`, `supervision<0.30`을 넣는다. `supervision<0.30` 제한의
   이유(0.30에서 ByteTrack 제거)를 주석으로 남긴다.

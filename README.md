@@ -36,6 +36,9 @@
 원본 영상, 모델 가중치, 생성 산출물은 Git에 넣지 않는다. 원본의 무결성은
 `manifests/raw_videos.csv`의 sha256으로 확인한다.
 
+분석·검출 환경은 OpenCV 배포판을 `opencv-python` 하나로 통일한다. 같은 환경에
+`opencv-python-headless`를 함께 설치하지 않는다.
+
 ## 이 자료로 할 수 있는 것과 없는 것
 
 | 분석 | 가능 여부 | 근거 |
@@ -114,7 +117,8 @@ raw detections
 | 프레임별 영상 정합 | 시제품(`scripts/registration/39_register_frames.py`) |
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
 | raw detection 별도 저장 | 미구현 |
-| 설치 의존성 | `pyproject.toml`의 `analysis`, `detection`, `dev`, `demo` extra로 관리. PyTorch는 GPU 드라이버에 맞춰 별도 선설치 |
+| 설치 의존성 | `pyproject.toml`의 `analysis`, `detection`, `dev`, `demo`, `evaluation` extra로 관리. PyTorch는 GPU 드라이버에 맞춰 별도 선설치 |
+| R01 baseline trajectory scoring | TASK-006 2단계 구현 중; `_02` 실행의 raw·filtered·merged 산출 완료, 평가 설정·코드·테스트 준비. 54개 complete-frame 기준 확인, 채점 실행은 체크포인트 2 승인 대기 |
 | 현장 미세조정, 사람 보정 도구 | 미구현 |
 | 횡단사건, 상호작용, A0/A1/B0/B1/B2 분류 | 미구현 |
 | 접근로별 미터 환산, `provisional_dpd` | 미구현 |
@@ -155,6 +159,7 @@ Python 3.11 이상을 사용한다. PyTorch는 GPU 드라이버에 맞는 빌드
 python3 -m venv .venv
 .venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132
 .venv/bin/pip install -e '.[analysis,detection,dev,demo]'
+.venv/bin/pip install -e '.[evaluation]'  # NumPy and SciPy for trajectory evaluation
 .venv/bin/pytest
 ```
 

@@ -344,27 +344,26 @@ false positive는 실제 GT 객체에 올바르게 연결되지 않으며 범위
 
 ## 14. 파일럿 전에 남은 결정사항
 
-아래 항목은 모두 `pending`이다. `pending`은 미승인값을 임의 숫자나 임시 판정으로
-대체하지 않는 workflow 상태를 뜻한다. JSON에서는 관련 값을 `null`로 유지하고, CSV에서는
-그 값을 요구하는 후속 행을 아직 생성하지 않는다. 기존 허용값 목록에 문자열 `pending`을
-임의로 추가하지 않는다.
+2026-11-03 사용자 결정에 따라 TASK-006 R01 scoring에 한정한 평가 설정 v1을 잠정 승인했다.
+GT schema와 원본 GT 값은 바꾸지 않는다.
 
-다음은 현재 확정하지 않는다.
+| 항목 | TASK-006 설정 v1 |
+|---|---|
+| 영상·평가 범위 | DJI_0482, source frame 4196–5994 inclusive |
+| 자동 추적 frame step | 2 source frames; GT frame과 같은 frame만 비교(시간 허용오차 0) |
+| 객체 분모 | frozen `gt_observations.csv`의 960행; 검토 skip 10건 제외·별도 보고 |
+| IoU 매칭 | 0.5 공식 기준, 0.3 민감도; 클래스 무관, 프레임별 일대일 헝가리안 매칭 |
+| 프레임 지표 대상 | 해당 시점의 분모 대상 GT 객체 전원에게 박스가 있는 complete frame만; 공통 grid 60개 중 54개 |
+| 클래스 호환 | person↔person; car↔car/bus/truck; motorcycle↔motorcycle; 나머지는 mismatch |
+| MT/PT/ML | MT ≥80%; ML <20%; 그 외 PT |
+| coverage status | 동일 auto ID가 anchor의 ≥80%를 덮으면 complete; 1회 이상 매칭이면 partial; 없으면 missed |
+| HOTA | `src/roundabout/third_party/hota.py`에 포함한 upstream HOTA; `12c8791b303e0a0b50f753af204249e622d0281a` 기준 parity test; α 0.05–0.95 평균 및 α=0.5, DetA/AssA/LocA 동일 보고 |
+| 최대 연속 누락 | 약 1초 anchor 해상도에서 보고만 함; 판정 threshold는 승인하지 않음 |
 
-- 실제 파일럿 영상과 30~60초 시작·종료 구간
-- 평가 frame step과 위치 GT 작성 간격
-- in-scope 구역과 구역 정의 버전
-- 객체 클래스 세부 호환표
-- 사람 집단과 탑승자·이륜차의 경계 사례 처리
-- automatic matching의 IoU·발점거리·시간 허용오차
-- 허용할 최대 interpolation span
-- `complete`의 최소 시간 커버리지와 최대 연속 누락 기준
-- 미병합을 오류로 확정할 기하·시간 조건
-- 상호작용 성립의 세부 운영규칙
-- 이중검토 비율과 adjudicator
-
-이 값들은 파일럿 영상을 확인하고 검토 난이도와 오류사례를 본 뒤
-`internal_provisional_gate` 또는 버전된 판정규칙으로 승인받는다.
+다음 항목은 계속 `pending`이며 근거 없이 값을 채우지 않는다: 최대 허용 연속 누락시간,
+최대 interpolation span, 미병합 오류 확정조건, 상호작용 성립 운영규칙, 이중검토 비율과
+adjudicator, 사람 집단·탑승자·이륜차 경계 사례. `pending`은 workflow 상태를 뜻하며,
+GT manifest 및 schema의 허용값 목록에는 추가하지 않는다.
 
 ## 15. 완료조건
 

@@ -466,21 +466,24 @@ GT 객체와 자동 track ID의 연결만 저장한다. false positive는 이 �
 11. 서로 다른 실행계보의 stage artifact를 혼합하면 평가를 중단한다.
 12. 확정 지표의 분자·분모에는 `review_status=adjudicated`인 행만 사용한다.
 
-## 10. 현재 미결정 값
+## 10. 미결정 값과 TASK-006 scoring 설정
 
-다음 값은 이 데이터사전이 정하지 않으며 빈 템플릿에 임의 입력하지 않는다.
+2026-11-03 사용자 결정에 따라 TASK-006 R01 scoring에 한정한 설정 v1을 잠정 승인했다.
+이 결정은 GT schema를 바꾸거나 GT manifest의 빈 lineage 필드를 채우지 않는다.
 
-- 파일럿 영상과 실제 30~60초 구간
-- 평가 frame step과 evaluation FPS
-- in-scope region 목록
-- 클래스 호환규칙
-- 자동 association의 IoU·거리·시간 허용오차
-- match score 산정법
-- 최대 interpolation span
-- complete 판정의 coverage·maximum-gap 수치
-- 미병합 확정조건
-- 상호작용 성립 운영규칙
-- reviewer 이중검토 비율과 adjudicator
+| TASK-006 설정 | 승인값 |
+|---|---|
+| 영상·평가 frame | DJI_0482, 4196–5994 inclusive; 자동 frame step 2; 시간 허용오차 0 |
+| denominator | frozen `gt_observations.csv` 960행; 검토 skip 10건 제외 |
+| IoU·assignment | 0.5 공식, 0.3 민감도; class-agnostic frame-wise one-to-one Hungarian |
+| 프레임 지표 | 분모 대상 모든 GT 객체의 박스가 있는 complete frames only; 공통 grid 60개 중 54개 |
+| 클래스 호환 | person↔person; car↔car/bus/truck; motorcycle↔motorcycle; 그 외 mismatch |
+| MT/PT/ML | MT ≥80%, ML <20%, 나머지 PT |
+| coverage status | 하나의 auto ID가 ≥80%면 complete; 1회 이상이면 partial; 없으면 missed |
+| HOTA | `src/roundabout/third_party/hota.py`에 포함한 upstream HOTA, commit `12c8791b303e0a0b50f753af204249e622d0281a`; α 0.05–0.95 평균 및 α=0.5, DetA/AssA/LocA 병기 |
+| 최대 연속 누락 | 약 1초 anchor 해상도로 보고만 하며 threshold는 미결정 |
 
-이 값들은 실제 영상을 확인한 뒤 승인된 규약 버전 또는
-`internal_provisional_gate`로 기록한다.
+다음 값은 `pending`으로 유지하며 템플릿에 임의 입력하지 않는다: 최대 연속 누락 threshold,
+최대 interpolation span, 미병합 확정조건, 상호작용 성립 운영규칙, 이중검토 비율 및
+adjudicator, 사람 집단·탑승자·이륜차 경계 사례 처리. `pending`은 workflow 상태이며
+허용값에 추가하지 않는다.
