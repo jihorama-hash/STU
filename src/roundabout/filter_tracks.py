@@ -11,7 +11,7 @@ from pathlib import Path
 
 import cv2
 
-from .paths import resolve_project_path
+from .paths import display_project_path, resolve_project_path
 
 
 VEHICLE_CLASSES = {"bicycle", "motorcycle", "car", "bus", "truck", "tricycle"}
@@ -119,8 +119,8 @@ def main() -> None:
                 writer.writerows(rows)
 
     summary = {
-        "source": str(tracks_path),
-        "output": str(output_path),
+        "source": display_project_path(args.tracks),
+        "output": display_project_path(args.output),
         "input_tracks": len(tracks),
         "kept_tracks": len(kept),
         "removed_tracks": len(tracks) - len(kept),
@@ -130,9 +130,10 @@ def main() -> None:
             "minimum_spread": args.minimum_spread,
             "minimum_vehicle_road_fraction": args.minimum_vehicle_road_fraction,
             "outside_roadway_keep_spread": args.outside_roadway_keep_spread,
-            "roadway_mask": str(mask_path),
+            "roadway_mask": display_project_path(args.roadway_mask),
             "vehicle_exclusion_mask": (
-                str(exclusion_mask_path) if exclusion_mask_path else None
+                display_project_path(args.vehicle_exclusion_mask)
+                if args.vehicle_exclusion_mask else None
             ),
             "minimum_vehicle_exclusion_fraction":
                 args.minimum_vehicle_exclusion_fraction,

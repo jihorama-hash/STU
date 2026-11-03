@@ -10,7 +10,7 @@ import statistics
 from collections import defaultdict
 from pathlib import Path
 
-from .paths import resolve_project_path
+from .paths import display_project_path, resolve_project_path
 
 
 def _time(row: dict[str, str]) -> float:
@@ -238,8 +238,8 @@ def main() -> None:
     input_ids = {row["track_id"] for row in rows}
     output_ids = {row["track_id"] for row in merged}
     report = {
-        "source": str(source),
-        "output": str(output),
+        "source": display_project_path(args.tracks),
+        "output": display_project_path(args.output),
         "input_tracks": len(input_ids),
         "merged_tracks": len(output_ids),
         "accepted_links": len(links),

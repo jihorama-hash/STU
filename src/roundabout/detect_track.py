@@ -16,7 +16,7 @@ import supervision as sv
 import torch
 from ultralytics import YOLO
 
-from .paths import resolve_project_path
+from .paths import display_project_path, resolve_project_path
 
 
 CLASS_PROFILES = {
@@ -295,9 +295,12 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         writer = csv.DictWriter(stream, fieldnames=OUTPUT_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
+    parameters = vars(args).copy()
+    for name in ("video", "model", "output_dir"):
+        parameters[name] = display_project_path(parameters[name])
     summary = {
-        "video": str(video_path.relative_to(resolve_project_path("."))),
-        "model": str(model_path.relative_to(resolve_project_path("."))),
+        "video": display_project_path(args.video),
+        "model": display_project_path(args.model),
         "device": str(device),
         "source_fps": fps,
         "effective_fps": fps / args.frame_step,
@@ -310,7 +313,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "class_rows": dict(class_counts),
         "elapsed_seconds": elapsed,
         "seconds_per_processed_frame": elapsed / processed if processed else None,
-        "parameters": vars(args),
+        "parameters": parameters,
         "class_profile": args.class_profile,
         "class_mapping": {
             source_id: {

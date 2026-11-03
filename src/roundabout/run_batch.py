@@ -90,14 +90,17 @@ def _require_file(path: Path, label: str) -> Path:
 
 def _project_path(root: Path, value: str) -> Path:
     path = Path(value).expanduser()
-    return path.resolve() if path.is_absolute() else (root / path).resolve()
+    candidate = path if path.is_absolute() else root / path
+    return Path(os.path.abspath(candidate))
 
 
 def _relative(root: Path, path: Path) -> str:
+    lexical_path = Path(os.path.abspath(path))
+    lexical_root = Path(os.path.abspath(root))
     try:
-        return path.resolve().relative_to(root.resolve()).as_posix()
+        return lexical_path.relative_to(lexical_root).as_posix()
     except ValueError:
-        return str(path.resolve())
+        return str(lexical_path)
 
 
 def _sha256(path: Path) -> str:
