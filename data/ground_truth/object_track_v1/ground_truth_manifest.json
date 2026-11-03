@@ -3,6 +3,7 @@
   "schema_version": "object_track_gt_v1",
   "gt_dataset_id": "DJI_0482_gate3a_140_200_v1",
   "dataset_status": "draft",
+  "frozen_version": "v1",
   "pilot": {
     "minimum_duration_seconds": 30.0,
     "maximum_duration_seconds": 60.0,
@@ -109,5 +110,22 @@
     "track_associations": "gt_track_associations.csv",
     "interaction_pairs": "gt_interaction_pairs.csv",
     "auto_track_audit": "auto_track_audit.csv"
+  },
+  "frozen_files": {
+    "objects": {
+      "path": "gt_objects.csv",
+      "row_count": 50,
+      "sha256": "23bc09061015f3f57340e35c5eb0c6782a3cb608d5effd444aa59cedfa7bfee8"
+    },
+    "visibility_intervals": {
+      "path": "gt_visibility_intervals.csv",
+      "row_count": 143,
+      "sha256": "9190a8deec308ff74d5563509f54caebc5f9f4dce50ba87d9e0a6122f82757dd"
+    },
+    "observations": {
+      "path": "gt_observations.csv",
+      "row_count": 960,
+      "sha256": "2cd303f453919d0021797ae528fac5f22661ab851c9116b884bd642e4fb31658"
+    }
   }
 }

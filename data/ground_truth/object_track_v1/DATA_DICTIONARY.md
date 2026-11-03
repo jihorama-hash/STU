@@ -160,6 +160,7 @@ fragmentation, ID switch, class match와 요약 판정은 모두 이 범주다.
 | `schema_version` | string | 필수 | `object_track_gt_v1` | 다른 값은 별도 변환 없이 사용 금지 |
 | `gt_dataset_id` | id 또는 null | 실제 파일 필수 | 프로젝트 내 고유 | 템플릿만 null 허용 |
 | `dataset_status` | string | 필수 | `template`, `draft`, `reviewed`, `adjudicated`, `frozen` | `template`은 평가 불가; `frozen` 변경 시 새 ID 필요 |
+| `frozen_version` | string 또는 null | 선택 | 동결 스냅샷 버전(예: `v1`) | 단일 검토자 자료는 이 값이 있어도 `dataset_status=draft`를 유지 |
 
 ### 2.2 `pilot`
 
@@ -259,6 +260,18 @@ fragmentation, ID switch, class match와 요약 판정은 모두 이 범주다.
 | `files.track_associations` | path | 필수 | `gt_track_associations.csv` | association 전 헤더만 허용 |
 | `files.interaction_pairs` | path | 필수 | `gt_interaction_pairs.csv` | pair 검토 전 헤더만 허용 |
 | `files.auto_track_audit` | path | 필수 | `auto_track_audit.csv` | audit 전 헤더만 허용 |
+
+### 2.9 `frozen_files`
+
+동결 스냅샷에 포함된 정본 CSV만 기록한다. 각 항목은 manifest의 `files` 경로와 일치해야 한다.
+`row_count`는 헤더를 제외한 데이터 행 수이며, `sha256`은 파일 바이트 전체의 SHA-256 소문자 16진수다.
+association, interaction, auto-track audit은 이번 R01 v1 스냅샷 범위에 포함하지 않는다.
+
+| JSON 경로 | 형식 | 필수 여부 | 허용값·단위 | 예외처리 |
+|---|---|---|---|---|
+| `frozen_files.<name>.path` | path | 동결 파일 필수 | `files.<name>`과 동일한 상대경로 | 불일치 시 manifest 오류 |
+| `frozen_files.<name>.row_count` | integer | 동결 파일 필수 | 헤더 제외 데이터 행 수, 0 이상 | 실제 CSV 행 수와 불일치 시 동결 검증 실패 |
+| `frozen_files.<name>.sha256` | string | 동결 파일 필수 | 파일 바이트의 SHA-256, 소문자 64자리 16진수 | 실제 해시와 불일치 시 무결성 검증 실패 |
 
 ## 3. `gt_objects.csv`
 

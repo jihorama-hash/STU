@@ -103,14 +103,14 @@ raw detections
 
 ## 현재 상태
 
-2026-10-29 기준, R01 블라인드 객체·가시성 검토표를 canonical GT 초안으로 전환했다.
+2026-11-03 기준, R01 객체·가시성·위치 GT의 v1 파일 스냅샷과 SHA-256을 기록했다. 단일 검토자 자료이므로 데이터셋 및 행별 상태는 `draft`이며, 복사 박스 후보 3개는 육안 미확인이다.
 
 | 기능 | 상태 |
 |---|---|
 | 슬라이스 검출, 클래스별 ByteTrack, 필터, 분절 병합 | 구현(`src/roundabout/`) |
 | ROI 순차점유 PET, 국소 일정속도 TTC 후보 | 구현, 잠정값 |
 | 중단 후 재개 가능한 배치, 오프라인 데모 | 구현 |
-| 블라인드 객체·가시성 GT | R01 draft: 객체 50개, canonical visibility 구간 143개, canonical 위치관측 960행; 970개 앵커(수동관측 960, 검토 skip 10, 미입력 0); P037 visible, P002·P004 visibility 재검토 반영; v1 manifest 동결·해시 및 태그는 TASK-005 대기 |
+| 블라인드 객체·가시성 GT | R01 v1 파일 스냅샷: 객체 50행, canonical visibility 구간 143행, canonical 위치관측 960행; 970개 앵커(수동관측 960, 검토 skip 10, 미입력 0); `dataset_status`와 행별 `review_status`는 `draft`; 복사 박스 후보 C004 4826, C005 5186, P006 4706은 육안 미확인; manifest·DATA_DICTIONARY·DECISION_LOG에 해시 기록; 커밋·태그는 사용자 승인 대기 |
 | 프레임별 영상 정합 | 시제품(`scripts/registration/39_register_frames.py`) |
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
 | raw detection 별도 저장 | 미구현 |

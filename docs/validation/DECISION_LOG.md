@@ -254,3 +254,13 @@ classwise NMS 0.50, class-aware ByteTrack 조건으로 비교했다.
 - 변경 전 작업표, 위치·skip 파일, canonical GT와 manifest 백업은 로컬
   `outputs/diagnostics/R01_visibility_backup_20261102_final/`에 보존했다. 작업표 검증과 canonical 변환 후
   위치 GT validator는 anchors=970, observations=960, skips=10, missing=0을 확인했다.
+
+## 2026-11-03 — R01 GT v1 스냅샷 해시 기록
+
+- 객체·가시성·위치 정본 CSV를 R01 `frozen_version=v1` 스냅샷으로 기록했다. 이는 파일 버전의 동결이며
+  단일 검토자 자료이므로 manifest의 `dataset_status`와 세 CSV의 모든 `review_status`는 `draft`로 유지한다.
+- 헤더 제외 행 수 및 SHA-256: `gt_objects.csv` 50행, `23bc09061015f3f57340e35c5eb0c6782a3cb608d5effd444aa59cedfa7bfee8`;
+  `gt_visibility_intervals.csv` 143행, `9190a8deec308ff74d5563509f54caebc5f9f4dce50ba87d9e0a6122f82757dd`;
+  `gt_observations.csv` 960행, `2cd303f453919d0021797ae528fac5f22661ab851c9116b884bd642e4fb31658`.
+- 해시는 파일 바이트 전체의 SHA-256이다. association, interaction, auto-track audit은 이 스냅샷에서 제외한다.
+- 한계와 미해결: 복사 박스 후보 C004 4826, C005 5186, P006 4706은 육안 미확인.
