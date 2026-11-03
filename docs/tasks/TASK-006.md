@@ -1,6 +1,6 @@
 # TASK-006: R01 현재 AI 채점(자동 association 기반 잠정 평가)
 
-- 상태: ready
+- 상태: done
 - 작성: Aside / 승인: 사용자 / 작성일: 2026-11-03
 - 브랜치: task/006-r01-baseline-scoring
 
@@ -129,9 +129,31 @@ association은 자동 생성값이므로 모든 수치는 잠정값(`provisional
 
 ## 완료 보고(Codex 작성)
 
-- 변경 파일:
-- 실행한 명령과 결과:
-- 채점한 실행(evaluation_run_id)과 실행계보:
-- 결과 요약(단계 × IoU):
-- 바뀐 설정과 영향 단계:
-- 한계와 미해결:
+- 변경 파일: `configs/evaluation_object_track_v1.yaml`, `src/roundabout/evaluate_object_track.py`,
+  `src/roundabout/third_party/{hota,clear,identity}.py`, `src/roundabout/environment.py`,
+  `src/roundabout/detect_track.py`, `tests/`, `pyproject.toml`, `requirements.txt`,
+  `scripts/windows/setup_blind_gt_review.bat`, `scripts/diagnostics/diagnose_r01_scoring_geometry.py`,
+  `scripts/diagnostics/diagnose_r01_frame_alignment.py`, `docs/validation/R01_BASELINE_SCORING_RESULT.md`,
+  `README.md`, `docs/tasks/TASK-006.md`, 그리고 TASK-006 결정 기록이 반영된 `docs/validation/DECISION_LOG.md`.
+- 실행한 명령과 결과: 전체 영상 GPU raw 실행은 사용자가 실행했으며 `_02`에서 `processed_frames=4361`,
+  `device="0"`을 확인했다. 같은 실행의 filtered·merged 단계와 3단계 × IoU 0.5/0.3 채점을 수행했다.
+  프레임 정렬 진단에서 frame 4196 순차 디코드와 seek 결과가 픽셀 단위로 일치했고, 공통 시간 오프셋은
+  확인되지 않았다. 최종 문서 커밋 후 `.venv/bin/pytest` 전체 실행 결과를 기록한다.
+- 채점한 실행(evaluation_run_id)과 실행계보: `r01_gtv1_scoring_20261103_02`, 입력 실행
+  `r01_baseline_yolo11m_full_20261103_02`. 평가 코드 커밋은 `a0fae002a27a6688a14fa9856f8d3e79c176ddce`
+  (`worktree_clean=true`). 출력은 `outputs/evaluation/r01_gtv1_scoring_20261103_02/`이며 각 산출물의
+  `.meta.json`과 GT·입력 해시를 기록했다.
+- 결과 요약(단계 × IoU): 객체 앵커 재현율은 raw/filtered/merged 순으로 IoU 0.5에서
+  24.4%/22.7%/22.7%, IoU 0.3에서 34.9%/32.2%/32.2%다. HOTA(평균)는 세 단계 모두 0.5 기준
+  0.2695/0.2694/0.2694로 거의 같았다. 클래스별 결과, MOTA·IDF1·IDSW, 진단 및 `_01` 비교는
+  `docs/validation/R01_BASELINE_SCORING_RESULT.md`에 기록했다.
+- 바뀐 설정과 영향 단계: 새 평가 설정에서 IoU 0.5/0.3, association·coverage 규칙 및 출력 ID를
+  명시했다. 짝짓기는 임계 미달 IoU를 0으로 만든 뒤 Hungarian 할당하며, MOTA·IDSW·IDF1은
+  공식 TrackEval 12c8791의 CLEAR/Identity 계산 코드를 포함해 적용한다. 검출·추적 설정은 변경하지 않았다.
+- 한계와 미해결: association과 audit은 사람 판정 전 자동 잠정값이며 Precision은 audit 전이다.
+  GT 앵커 간격은 약 1초이고, 필터 임계값 튜닝 구간(150–210초)이 평가구간과 겹친다. GT는 단일
+  검토자 draft이고 복사 박스 후보 C004 frame 4826, C005 frame 5186, P006 frame 4706은 육안 미확인이다.
+  by_video 도로 마스크는 TASK-006 한정 결정이다. 검출 당시 `opencv-python==5.0.0.93`은 설치 기록에
+  근거한 추정이다. 표본은 60초 단일 구간이며 오토바이 GT가 3개 객체·36개 앵커여서 일반화할 수 없다.
+  차량 제외 구역이 C003/raw track 5를 제거한 근거와 적용 범위는 후속 점검 대상이며, 마스크 수정은
+  별도 승인 전 수행하지 않는다.

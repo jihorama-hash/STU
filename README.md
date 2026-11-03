@@ -118,7 +118,7 @@ raw detections
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
 | raw detection 별도 저장 | 미구현 |
 | 설치 의존성 | `pyproject.toml`의 `analysis`, `detection`, `dev`, `demo`, `evaluation` extra로 관리. PyTorch는 GPU 드라이버에 맞춰 별도 선설치 |
-| R01 baseline trajectory scoring | TASK-006 2단계 구현 중; `_02` 실행의 raw·filtered·merged 산출 완료, 평가 설정·코드·테스트 준비. 54개 complete-frame 기준 확인, 채점 실행은 체크포인트 2 승인 대기 |
+| R01 baseline trajectory scoring | TASK-006 완료. `_02` 실행을 `raw_tracker`·`filtered`·`merged` 3단계 × IoU 0.5/0.3으로 채점했고 결과 초안을 `docs/validation/R01_BASELINE_SCORING_RESULT.md`에 기록했다. 자동 association 잠정값이며 사람 adjudication과 C003 차량 제외 구역 점검은 후속 작업이다. |
 | 현장 미세조정, 사람 보정 도구 | 미구현 |
 | 횡단사건, 상호작용, A0/A1/B0/B1/B2 분류 | 미구현 |
 | 접근로별 미터 환산, `provisional_dpd` | 미구현 |
