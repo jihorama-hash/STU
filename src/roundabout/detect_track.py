@@ -16,6 +16,7 @@ import supervision as sv
 import torch
 from ultralytics import YOLO
 
+from .environment import opencv_environment
 from .paths import display_project_path, resolve_project_path
 
 
@@ -185,6 +186,7 @@ def detect_sliced(
 
 
 def run(args: argparse.Namespace) -> dict[str, object]:
+    opencv_runtime = opencv_environment()
     video_path = resolve_project_path(args.video)
     model_path = resolve_project_path(args.model)
     output_dir = resolve_project_path(args.output_dir)
@@ -299,6 +301,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     for name in ("video", "model", "output_dir"):
         parameters[name] = display_project_path(parameters[name])
     summary = {
+        "environment": {"opencv": opencv_runtime},
         "video": display_project_path(args.video),
         "model": display_project_path(args.model),
         "device": str(device),

@@ -29,7 +29,7 @@ if not exist "%REVIEW_VENV%\Scripts\python.exe" (
 echo Installing the two reviewer dependencies...
 "%REVIEW_VENV%\Scripts\python.exe" -m pip install --upgrade pip
 if errorlevel 1 goto :failed
-"%REVIEW_VENV%\Scripts\python.exe" -m pip install "numpy>=1.26,<3" "opencv-python-headless>=4.9,<5"
+"%REVIEW_VENV%\Scripts\python.exe" -m pip install "numpy>=1.26,<3" "opencv-python>=4.9,<6"
 if errorlevel 1 goto :failed
 
 echo.

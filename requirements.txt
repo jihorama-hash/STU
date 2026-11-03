@@ -1,7 +1,7 @@
 # pyproject.toml is the source of truth; this file is supplementary.
 # Legacy/standalone dependency list retained for compatibility.
 # Core dependencies actually imported across src/*.py
-opencv-python
+opencv-python>=4.9,<6
 numpy
 pandas
 openpyxl
