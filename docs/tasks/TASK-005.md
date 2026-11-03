@@ -1,6 +1,6 @@
 # TASK-005: R01 위치 GT v1 동결 및 무결성 기록
 
-- 상태: ready
+- 상태: completed
 - 작성: Codex / 승인: 사용자 / 작성일: 2026-11-02
 - 브랜치: task/005-r01-gt-v1-freeze
 
@@ -46,8 +46,19 @@ R01 객체·가시성·위치 정본을 v1으로 동결해 버전과 파일 무�
 
 ## 완료 보고(Codex 작성)
 
-- 변경 파일:
-- 파일별 행 수 및 SHA-256:
-- 검증 결과:
-- 커밋 및 태그:
-- 한계와 미해결:
+- 변경 파일: `data/ground_truth/object_track_v1/ground_truth_manifest.json`,
+  `data/ground_truth/object_track_v1/DATA_DICTIONARY.md`, `docs/validation/DECISION_LOG.md`,
+  `README.md`; 태그 이후 완료 기록으로 이 지시문을 별도 커밋했다.
+- 파일별 행 수 및 SHA-256 (헤더 제외): `gt_objects.csv` 50행,
+  `23bc09061015f3f57340e35c5eb0c6782a3cb608d5effd444aa59cedfa7bfee8`;
+  `gt_visibility_intervals.csv` 143행,
+  `9190a8deec308ff74d5563509f54caebc5f9f4dce50ba87d9e0a6122f82757dd`;
+  `gt_observations.csv` 960행,
+  `2cd303f453919d0021797ae528fac5f22661ab851c9116b884bd642e4fb31658`.
+- 검증 결과: manifest JSON 유효; CSV 행 수와 SHA-256 일치; `dataset_status`와 세 파일의
+  행별 `review_status`는 `draft`; `.venv/bin/pytest` 71 passed; `git diff --check` 통과.
+- 커밋 및 태그: 동결 커밋 `ed724927d8c85343fbca44bf4c9a898c34ac8207`을 `main`에
+  fast-forward 후 push했다. annotated tag `gt-r01-v1`이 이 동결 커밋을 가리키며 원격에 push했다.
+  이 완료 보고는 태그 이후 별도 문서 커밋으로 기록한다.
+- 한계와 미해결: 단일 검토자 자료이므로 동결 버전은 v1이나 데이터셋·행별 상태는 `draft`다.
+  복사 박스 후보 C004 4826, C005 5186, P006 4706은 육안 미확인.
