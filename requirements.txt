@@ -8,6 +8,7 @@ openpyxl
 ultralytics
 sahi
 supervision<0.30  # 0.30 removes ByteTrack (deprecated since 0.28), used by src/29_sahi_bytetrack_pipeline.py
+pycocotools>=2.0.7,<3  # COCO AP evaluation
 
 # torch / torchvision are intentionally excluded - install the CUDA 13.2 wheel
 # matching this workstation's driver BEFORE this file, not after.

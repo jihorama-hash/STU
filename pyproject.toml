@@ -22,7 +22,7 @@ detection = [
 ]
 dev = ["pytest>=8,<9"]
 demo = ["streamlit>=1.37,<2"]
-evaluation = ["numpy>=1.26,<3", "scipy>=1.16.1,<2"]
+evaluation = ["numpy>=1.26,<3", "scipy>=1.16.1,<2", "pycocotools>=2.0.7,<3"]
 
 [project.scripts]
 roundabout-inventory = "roundabout.inventory:main"
