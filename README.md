@@ -106,7 +106,7 @@ raw detections
 
 ## 현재 상태
 
-2026-11-03 기준, R01 객체·가시성·위치 GT의 v1 파일 스냅샷과 SHA-256을 기록했다. 단일 검토자 자료이므로 데이터셋 및 행별 상태는 `draft`이며, 복사 박스 후보 3개는 육안 미확인이다.
+2026-11-04 기준, R01 객체·가시성·위치 GT v1 파일 스냅샷과 SHA-256을 기록했고 TASK-006 기준선 및 TASK-007 검출기 단독 평가를 완료했다. GT는 단일 검토자 자료이므로 데이터셋 및 행별 상태가 `draft`이며, 복사 박스 후보 3개는 육안 미확인이다.
 
 | 기능 | 상태 |
 |---|---|
@@ -116,9 +116,10 @@ raw detections
 | 블라인드 객체·가시성 GT | R01 v1 파일 스냅샷: 객체 50행, canonical visibility 구간 143행, canonical 위치관측 960행; 970개 앵커(수동관측 960, 검토 skip 10, 미입력 0); `dataset_status`와 행별 `review_status`는 `draft`; 복사 박스 후보 C004 4826, C005 5186, P006 4706은 육안 미확인; 동결 커밋 `ed724927`을 `main`에 반영하고 annotated tag `gt-r01-v1`을 push 완료 |
 | 프레임별 영상 정합 | 시제품(`scripts/registration/39_register_frames.py`) |
 | 클래스 전환 자기충돌 진단 | 시제품(`scripts/diagnostics/31_verify_flicker_self_collision.py`) |
-| raw detection 별도 저장 | 미구현 |
+| raw detection 별도 저장 | 구현(`src/roundabout/detect_frames.py`); TASK-007 A 검출 산출물과 메타데이터 생성 완료 |
 | 설치 의존성 | `pyproject.toml`의 `analysis`, `detection`, `dev`, `demo`, `evaluation` extra로 관리. PyTorch는 GPU 드라이버에 맞춰 별도 선설치 |
 | R01 baseline trajectory scoring | TASK-006 완료. `_02` 실행을 `raw_tracker`·`filtered`·`merged` 3단계 × IoU 0.5/0.3으로 채점했고 결과 초안을 `docs/validation/R01_BASELINE_SCORING_RESULT.md`에 기록했다. 자동 association 잠정값이며 사람 adjudication과 C003 차량 제외 구역 점검은 후속 작업이다. |
+| R01 detection-only evaluation | TASK-007 완료. A 실행을 236개 GT/grid-union 프레임으로 수행하고 1,488개 tracker 박스를 IoU≥.99로 재현성 대조했다. B와 도로 영역 층화 평가는 보류 결정에 따라 생략했다. 결과는 `docs/validation/R01_DETECTION_ONLY_RESULT.md`에 기록했다. |
 | 현장 미세조정, 사람 보정 도구 | 미구현 |
 | 횡단사건, 상호작용, A0/A1/B0/B1/B2 분류 | 미구현 |
 | 접근로별 미터 환산, `provisional_dpd` | 미구현 |

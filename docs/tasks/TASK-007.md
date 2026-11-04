@@ -1,6 +1,6 @@
 # TASK-007: R01 검출기 단독 평가(ByteTrack 분리)
 
-- 상태: checkpoint
+- 상태: done
 - 작성: Aside / 승인: 사용자 / 작성일: 2026-11-04
 - 브랜치: task/007-r01-detection-only
 
@@ -152,7 +152,7 @@ TASK-006의 `raw_tracker` 점수는 검출기(YOLO11m 슬라이스 검출)와 By
 
 ## 완료 보고(Codex 작성)
 
-- 변경 파일:
-- 실행한 명령과 결과:
-- 바뀐 설정과 영향 단계:
-- 한계와 미해결:
+- 변경 파일: `src/roundabout/detect_frames.py`, `src/roundabout/evaluate_detection.py`, `tests/test_detect_frames.py`, `tests/test_evaluate_detection.py`, `configs/evaluation_detection_v1.yaml`, `pyproject.toml`, `requirements.txt`, `README.md`, `scripts/diagnostics/40_check_r01_detection_reproducibility.py`, `scripts/diagnostics/41_score_r01_detection_only.py`, `scripts/diagnostics/42_supplement_r01_checkpoint3.py`, 본 문서, `docs/validation/R01_DETECTION_ONLY_RESULT.md`, `docs/validation/DECISION_LOG.md`. 실행 산출물은 `outputs/evaluation/r01_detection_only_20261104_02/A/`에 있으며 Git에 포함하지 않는다.
+- 실행한 명령과 결과: `.venv/bin/pytest` — 전체 테스트 통과(100 passed). A 실행은 사용자 GPU 터미널에서 수행했으며 CUDA 장치·입력 계보·설정 해시를 확인했다. 재현성 대조 236프레임, 1,488/1,488 박스가 IoU≥.99로 일치했다. 결과 문서에 기록한 별도 진단과 오버레이를 생성했다.
+- 바뀐 설정과 영향 단계: 검출 전용 평가 설정 `configs/evaluation_detection_v1.yaml`을 추가했다. `detect_frames.py`에서 raw detections를 기록하고 평가기에서 P/R·AP 및 추적 손실을 분리 집계한다. 기준 추적 파이프라인 설정과 `detect_track.py`는 변경하지 않았다.
+- 한계와 미해결: GT는 단일 60초 구간이고 motorcycle은 3개 객체다. 미매칭 검출 301개는 사용자 감사 전이므로 Precision은 잠정값이다. B는 차량 누락 중 타일 경계 비중이 6.1%이고 ① 검출기 누락이 대부분이라 생략했다. 도로 영역 층화 평가는 사용자 결정에 따라 미세조정 후 성능이 부족할 때 재검토한다. 미세조정 라벨 작성 전 GT/AI 박스 작성 규칙을 정해야 하며, ByteTrack 파라미터 검토는 미세조정 후 검출 점수 분포 확인 뒤 수행한다.
