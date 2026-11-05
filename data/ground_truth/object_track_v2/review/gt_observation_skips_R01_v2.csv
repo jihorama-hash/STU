@@ -1,0 +1,7 @@
+gt_object_id,frame_index,reason,notes
+M002,5876,not_found,
+P003,4792,occluded_more_than_marked,절반 이상 화면 밖으로 사라짐
+P019,5126,ambiguous_identity,
+P019,5166,not_found,
+P026,5846,not_found,
+P027,5890,ambiguous_identity,
