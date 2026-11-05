@@ -1,5 +1,16 @@
 # 의사결정 기록
 
+## 2026-11-05 — 검출 박스 라벨 규칙 및 R01 GT v2
+
+- 승인된 박스 규칙은 `docs/validation/DETECTION_LABEL_RULES.md`를 따른다. D1 클래스는 COCO 기준 `person`, `bicycle`, `car`, `motorcycle`, `bus`, `truck`이다. 버스는 영상 후반부에 나타난다. 밴은 `car`, 픽업·화물차·탑차는 `truck`으로 분류한다.
+- D2 부분 가림은 보이는 부분이 대략 절반 이상이며 육안으로 인식 가능한 경우 보이는 범위에 라벨한다. 절반 미만이 보이거나 인식할 수 없는 경우 ignore 박스를 쓴다. ignore 박스는 평가 분모에서 제외하고, 겹치는 검출은 오탐으로 세지 않는다.
+- D3 우산 보행자는 `person`으로 라벨하고 `umbrella=true` 속성을 기록한다.
+- D4 bicycle·motorcycle 박스 하나에 차체와 운전자·동승자를 함께 포함한다. 탑승자 person 박스는 따로 만들지 않는다. bicycle을 끌고 가는 사람은 person과 bicycle을 각각 라벨한다.
+- D5 R01 GT v2의 960개 위치 박스를 전수 재검토한다. R01은 평가 전용이며 학습에는 넣지 않는다. v1 파일·manifest·`gt-r01-v1` 태그는 보존한다.
+- TASK-007 사용자 결정 1의 “탑승자 검출은 정탐” 규칙은 R01 GT v2 재채점에서 아래 규칙으로 대체한다. 검출이 GT와 유효 매칭된 뒤 남은 person 검출만 대상으로, 검출 박스 면적 중 같은 프레임의 GT bicycle/motorcycle 박스와 겹치는 비율이 50% 이상이면 `rider_inside_vehicle`로 집계한다. 기준은 사용자 승인 현장 판단값(evidence C)이며 `configs/evaluation_detection_v2.yaml`에서 관리한다. 30%·50%·70% 민감도 건수를 confidence 및 IoU 범위와 함께 보고하고 주 기준은 50%로 유지한다.
+- 이 규칙은 TASK-007의 ignore 매칭과 구분한다. TASK-007 P/R ignore는 intersection-over-detection-area(IoA)가 해당 P/R IoU 임계값 이상일 때 적용했다: 공식 .50, 민감도 .30. AP의 COCOeval crowd ignore는 AP IoU 임계값 .50–.95 각각을 사용했다.
+- v2 평가는 `configs/evaluation_detection_v2.yaml`과 별도 GT 경로·ID를 사용한다. 미세조정은 다음 TASK 범위다.
+
 ## 2026-11-04 — 도로 영역 층화 평가 보류
 
 - TASK-007 사용자 결정:

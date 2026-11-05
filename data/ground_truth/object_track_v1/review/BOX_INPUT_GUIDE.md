@@ -117,6 +117,52 @@ PYTHONPATH=src .venv/bin/python apps/demo/blind_gt_review.py --box-input --valid
 - 정상 결과: 입력 오류가 없으면 `annotation validation: OK`가 출력된다. 아직 남은 anchor는 `missing`으로
   표시되며 이는 작업 진행률이지 입력 오류가 아니다.
 
+## 7. GT v2 재검토 모드
+
+이 모드는 v1 위치 GT를 읽기 전용으로 불러오고, 재검토 결과를 별도 v2 작업 파일에 저장한다. 자동 검출·추적 결과는 읽거나 표시하지 않는다. 객체 목록, visibility 구간과 기존 skip 10건은 v1 그대로 사용한다.
+
+1. WSL(Ubuntu) STU 저장소 루트에서 v2 작업파일을 검사한다.
+
+   ```bash
+   PYTHONPATH=src .venv/bin/python apps/demo/blind_gt_review.py --revision-v2 --validate-only
+   ```
+
+   - 실행 위치: WSL(Ubuntu), 저장소 루트
+   - 기능: v2 작업 기록의 좌표, 분류 필드와 anchor 충돌 여부를 검사한다.
+   - 정상 결과: `annotation validation: OK`와 anchor별 완료 수가 출력된다.
+
+2. 검증 후 같은 위치에서 재검토 입력기를 실행한다.
+
+   ```bash
+   PYTHONPATH=src .venv/bin/python apps/demo/blind_gt_review.py --revision-v2
+   ```
+
+   - 실행 위치: WSL(Ubuntu), 저장소 루트
+   - 정상 결과: `blind GT box input v2 review: http://127.0.0.1:8502`가 표시된다. 브라우저에서 해당 주소를 연다.
+
+- v1 박스는 편집 시작값으로 표시된다. Enter로 저장하면 그대로 유지한 경우 `kept`, 크기나 위치를 조정한 경우 `adjusted`, 다시 그린 경우 `redrawn`으로 기록한다. v1 박스가 없는 신규 관측은 `new`다.
+- `I`(무시영역), `U`(우산), `M`(PM), `T`(화면 잘림) 토글을 사용한다. 단축키는 체크박스에 포커스가 없을 때 작동한다.
+- 재검토 중 `V`는 비활성화되며, `C`는 직전 검토 박스를 복사한다. 발점 검증은 저장을 막지 않는다.
+- v2 작업파일은 `data/ground_truth/object_track_v2/review/`에 저장된다. v1 파일은 변경하지 않는다.
+
+재검토가 끝나고 며칠 지난 별도 날짜에 일관성 점검을 한다. 이 모드는 고정 seed `20261105`로 v1 박스가 있는 anchor 30개를 무작위 추출해 표본 파일에 seed를 기록한다. 기존 박스와 같은 프레임의 다른 GT 박스는 화면에서 숨긴다.
+
+```bash
+PYTHONPATH=src .venv/bin/python apps/demo/blind_gt_review.py --consistency-review
+```
+
+- 실행 위치: WSL(Ubuntu), 저장소 루트
+- 기능: 선정 anchor 30개를 기존 박스 없이 다시 입력한다. 결과는 v2 review 아래 별도 일관성 작업파일에 저장된다.
+- 정상 결과: `blind GT box input consistency review: http://127.0.0.1:8502`와 표본 완료 수가 표시된다.
+
+입력 완료 뒤 IoU 요약을 계산한다.
+
+```bash
+PYTHONPATH=src .venv/bin/python apps/demo/blind_gt_review.py --consistency-summary
+```
+
+- 정상 결과: seed, `n=30`, IoU 중앙값과 하위 10% 값이 출력된다.
+
 ## 6. 입력 완료 후 visibility 경계 재검토
 
 박스 입력을 마친 뒤에만 아래 순서로 작업표와 정본 visibility GT를 갱신한다. 변환기는 `gt_objects.csv`,

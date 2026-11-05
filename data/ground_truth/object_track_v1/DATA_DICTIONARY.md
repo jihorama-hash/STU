@@ -487,3 +487,17 @@ GT 객체와 자동 track ID의 연결만 저장한다. false positive는 이 �
 최대 interpolation span, 미병합 확정조건, 상호작용 성립 운영규칙, 이중검토 비율 및
 adjudicator, 사람 집단·탑승자·이륜차 경계 사례 처리. `pending`은 workflow 상태이며
 허용값에 추가하지 않는다.
+
+
+## 검출 박스 GT v2 확장 필드
+
+`docs/validation/DETECTION_LABEL_RULES.md`에 따른 검출 박스 v2는 `schema_version=detection_box_gt_v2`를 사용한다. v1 정의와 파일은 그대로 유지한다.
+
+| 필드 | 형식 | 필수 | 허용값 | 설명 |
+|---|---|---|---|---|
+| `ignore` | boolean | 예 | `true`, `false` | 위치 평가 분모에서 제외할 무시영역 표시 |
+| `attributes` | 문자열 | 예 | `umbrella=true`, `pm=true`, `truncated=true`를 `;` 구분 | 객체 속성, 없으면 빈 문자열 |
+| `label_source` | 열거 | 예 | `manual`, `v1_box` | 신규 수동 입력 또는 v1 박스 재검토 |
+| `revision_action` | 열거 | 예 | `kept`, `adjusted`, `redrawn`, `new` | v1 대비 수정 유형 |
+
+GT v2 `gt_dataset_id`는 `DJI_0482_R01_detection_box_v2`, canonical 경로는 `data/ground_truth/object_track_v2/canonical/`이다.
