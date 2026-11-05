@@ -367,6 +367,46 @@ def _intersection_over_detection(detection_box, ignore_box) -> float:
     return intersection / area if area else 0.0
 
 
+def rider_inside_vehicle_sensitivity(
+    detections: list[dict[str, object]],
+    matched_detection_indices: set[int],
+    vehicle_ground_truth: list[dict[str, object]],
+    evaluation_config: dict[str, object],
+) -> dict[float, int]:
+    """Count unmatched person detections contained by same-frame two-wheeler GT.
+
+    The caller supplies detections from one matching scope (confidence and IoU
+    threshold). Matched detections are excluded before the containment rule.
+    """
+    rule = evaluation_config["matching"]["rider_inside_vehicle"]
+    configured = [float(value) for value in rule["sensitivity_thresholds"]]
+    primary = float(rule["containment_threshold"])
+    if primary not in configured:
+        raise DetectionEvaluationError(
+            "rider containment threshold must appear in sensitivity_thresholds"
+        )
+    allowed_classes = {"bicycle", "motorcycle"}
+    vehicles_by_frame: dict[int, list[dict[str, object]]] = defaultdict(list)
+    for raw_row in vehicle_ground_truth:
+        row = normalized_box_row(raw_row)
+        if str(row["object_class"]) in allowed_classes:
+            vehicles_by_frame[int(row["frame_index"])].append(row)
+
+    ratios: list[float] = []
+    for index, raw_row in enumerate(detections):
+        row = normalized_box_row(raw_row)
+        if index in matched_detection_indices or str(row["object_class"]) != "person":
+            continue
+        same_frame = vehicles_by_frame.get(int(row["frame_index"]), [])
+        if not same_frame:
+            continue
+        ratios.append(max(
+            _intersection_over_detection(row["box"], vehicle["box"])
+            for vehicle in same_frame
+        ))
+    return {threshold: sum(ratio >= threshold for ratio in ratios) for threshold in configured}
+
+
 def decompose_tracker_loss(
     ground_truth: list[dict[str, object]],
     detections: list[dict[str, object]],

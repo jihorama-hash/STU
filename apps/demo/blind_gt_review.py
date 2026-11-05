@@ -630,6 +630,9 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="list observation boxes at least 40% larger than same-object medians",
     )
+    parser.add_argument("--revision-v2", action="store_true", help="review R01 boxes into isolated GT v2 work files")
+    parser.add_argument("--consistency-review", action="store_true", help="blindly redraw the seeded 30-anchor consistency sample")
+    parser.add_argument("--consistency-summary", action="store_true", help="report IoU for the completed consistency sample")
     parser.add_argument("--video", type=Path, default=DEFAULT_VIDEO)
     parser.add_argument(
         "--objects-worksheet",
@@ -646,7 +649,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    if args.box_input or args.validate_only or args.skip_summary or args.size_outliers:
+    if args.box_input or args.validate_only or args.skip_summary or args.size_outliers or args.revision_v2 or args.consistency_review or args.consistency_summary:
         from apps.demo.gt_box_annotation import run_box_mode
 
         run_box_mode(args)

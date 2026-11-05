@@ -130,6 +130,46 @@ class GtBoxAnnotationTest(unittest.TestCase):
         ]
         self.assertEqual(annotation.predict_zoom_center(rows, 4256), (40, 50))
 
+    def test_consistency_sample_uses_fixed_seed_and_box_iou(self) -> None:
+        import unittest.mock
+
+        v1_rows = annotation._read_csv(
+            annotation.REVIEW_ROOT / "gt_observations_R01.csv", annotation.OBSERVATION_HEADERS
+        )
+        keys = {(row["gt_object_id"], int(row["frame_index"])) for row in v1_rows}
+        anchors = {}
+        for oid, frame in sorted(keys):
+            anchors.setdefault(oid, []).append({"frame_index": frame})
+        sample_path = self.root / "consistency_sample.json"
+        with unittest.mock.patch.object(annotation, "CONSISTENCY_SAMPLE_PATH", sample_path):
+            sample = annotation.load_or_create_consistency_sample(anchors)
+            self.assertEqual(sample["seed"], annotation.CONSISTENCY_SEED)
+            self.assertEqual(sample["sample_size"], 30)
+            self.assertEqual(annotation.load_or_create_consistency_sample(anchors), sample)
+        self.assertEqual(annotation.box_iou(
+            {"x1": 0, "y1": 0, "x2": 10, "y2": 10},
+            {"x1": 0, "y1": 0, "x2": 10, "y2": 10},
+        ), 1.0)
+
+    def test_revision_records_kept_adjusted_redrawn_and_ignore_without_v1_write(self) -> None:
+        state = self._state()
+        state.revision_mode = True
+        state.observations_path = self.root / "revision_observations.csv"
+        state.skips_path = self.root / "revision_skips.csv"
+        state.v1_by_key = {("P001", 4196): {"x1": "10", "y1": "20", "x2": "30", "y2": "60"},
+                             ("P001", 4200): {"x1": "10", "y1": "20", "x2": "30", "y2": "60"}}
+        kept = state.save_observation("P001", 4196, {"x1": 10, "y1": 20, "x2": 30, "y2": 60}, ignore=True)
+        self.assertEqual(kept["revision_action"], "kept")
+        self.assertEqual(kept["ignore"], "true")
+        self.assertEqual(kept["schema_version"], "detection_box_gt_v2")
+        self.assertEqual(kept["gt_dataset_id"], "DJI_0482_R01_detection_box_v2")
+        adjusted = state.save_observation("P001", 4200, {"x1": 11, "y1": 20, "x2": 31, "y2": 60})
+        self.assertEqual(adjusted["revision_action"], "adjusted")
+        redrawn = state.save_observation("P001", 4200, {"x1": 11, "y1": 20, "x2": 31, "y2": 60}, revision_action="redrawn")
+        self.assertEqual(redrawn["revision_action"], "redrawn")
+        self.assertEqual(state.observations_path.read_text(encoding="utf-8").splitlines()[0].split(",")[-4:],
+                         ["ignore", "attributes", "label_source", "revision_action"])
+
     def test_save_resume_and_copy_note(self) -> None:
         state = self._state()
         row = state.save_observation(
@@ -320,7 +360,7 @@ class GtBoxAnnotationTest(unittest.TestCase):
         self.assertIn("foot=defaultFoot(box);footAdjusted=false;copied=true", html)
         self.assertIn("async function copyPreviousSaveNext()", html)
         self.assertIn("await saveAndAdvance()", html)
-        self.assertIn('e.key.toLowerCase()==="v")copyPreviousSaveNext()', html)
+        self.assertIn('e.key.toLowerCase()==="v"&&!state.revisionMode)copyPreviousSaveNext()', html)
 
     def test_state_payload_includes_resume_progress_and_user_gt_overlays(self) -> None:
         state = self._state()

@@ -93,6 +93,7 @@ class ObjectTrackEvaluationTest(unittest.TestCase):
         self.assertTrue(class_compatible("car", "bus"))
         self.assertTrue(class_compatible("car", "truck"))
         self.assertTrue(class_compatible("motorcycle", "motorcycle"))
+        self.assertTrue(class_compatible("bicycle", "bicycle"))
         self.assertFalse(class_compatible("motorcycle", "bicycle"))
 
     def test_frozen_ground_truth_hash_mismatch_is_an_error(self):

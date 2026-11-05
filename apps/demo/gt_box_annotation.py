@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 import math
+import random
 import statistics
 import threading
 from collections import defaultdict
@@ -64,6 +65,18 @@ PLAYBACK_WIDTH = 1280
 REVIEWER = "R01"
 DEFAULT_FOOT_TOLERANCE_PX = 1.0
 SIZE_OUTLIER_RATIO = 1.4
+REVISION_ROOT = ROOT / "data/ground_truth/object_track_v2/review"
+REVISION_OBSERVATIONS_PATH = REVISION_ROOT / "gt_observations_R01_v2.csv"
+REVISION_SKIPS_PATH = REVISION_ROOT / "gt_observation_skips_R01_v2.csv"
+CONSISTENCY_SAMPLE_PATH = REVISION_ROOT / "consistency_sample.json"
+CONSISTENCY_OBSERVATIONS_PATH = REVISION_ROOT / "consistency_observations.csv"
+CONSISTENCY_SKIPS_PATH = REVISION_ROOT / "consistency_skips.csv"
+CONSISTENCY_SEED = 20261105
+REVISION_SCHEMA_VERSION = "detection_box_gt_v2"
+REVISION_DATASET_ID = "DJI_0482_R01_detection_box_v2"
+REVISION_HEADERS = OBSERVATION_HEADERS + (
+    "ignore", "attributes", "label_source", "revision_action",
+)
 
 
 class AnnotationError(ValueError):
@@ -238,6 +251,47 @@ def calculate_anchors(
     return {row["gt_object_id"]: grouped.get(row["gt_object_id"], []) for row in objects}
 
 
+def load_or_create_consistency_sample(
+    anchors: dict[str, list[dict[str, object]]], seed: int = CONSISTENCY_SEED, count: int = 30
+) -> dict[str, object]:
+    if CONSISTENCY_SAMPLE_PATH.exists():
+        return json.loads(CONSISTENCY_SAMPLE_PATH.read_text(encoding="utf-8"))
+    v1_keys = {(r["gt_object_id"], int(r["frame_index"]))
+               for r in _read_csv(REVIEW_ROOT / "gt_observations_R01.csv", OBSERVATION_HEADERS)}
+    all_anchors = [{"gt_object_id": oid, "frame_index": int(a["frame_index"])}
+                   for oid, rows in anchors.items() for a in rows
+                   if (oid, int(a["frame_index"])) in v1_keys]
+    if len(all_anchors) < count:
+        raise AnnotationError(f"consistency review requires at least {count} eligible anchors")
+    selected = random.Random(seed).sample(all_anchors, count)
+    selected.sort(key=lambda row: (row["gt_object_id"], row["frame_index"]))
+    payload = {"seed": seed, "sample_size": count, "anchors": selected}
+    CONSISTENCY_SAMPLE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    CONSISTENCY_SAMPLE_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def box_iou(first: dict[str, object], second: dict[str, object]) -> float:
+    ax1, ay1, ax2, ay2 = (float(first[k]) for k in ("x1", "y1", "x2", "y2"))
+    bx1, by1, bx2, by2 = (float(second[k]) for k in ("x1", "y1", "x2", "y2"))
+    intersection = max(0.0, min(ax2, bx2) - max(ax1, bx1)) * max(0.0, min(ay2, by2) - max(ay1, by1))
+    union = (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1) - intersection
+    return intersection / union if union > 0 else 0.0
+
+
+def print_consistency_summary(state: "AnnotationState") -> None:
+    sample = json.loads(CONSISTENCY_SAMPLE_PATH.read_text(encoding="utf-8"))
+    v1 = {(r["gt_object_id"], int(r["frame_index"])): r
+          for r in _read_csv(REVIEW_ROOT / "gt_observations_R01.csv", OBSERVATION_HEADERS)}
+    values = [box_iou(row, v1[(row["gt_object_id"], int(row["frame_index"]))])
+              for row in state.observations if (row["gt_object_id"], int(row["frame_index"])) in v1]
+    if len(values) != int(sample["sample_size"]):
+        raise AnnotationError(f"consistency sample incomplete: {len(values)}/{sample['sample_size']}")
+    ordered = sorted(values)
+    p10 = ordered[max(0, math.ceil(0.1 * len(ordered)) - 1)]
+    print(f"consistency seed={sample['seed']} n={len(values)} median_iou={statistics.median(values):.4f} p10_iou={p10:.4f}")
+
+
 def calculate_crop(
     center_x: float,
     center_y: float,
@@ -320,23 +374,39 @@ class AnnotationState:
         observations_path: Path = OBSERVATIONS_PATH,
         skips_path: Path = SKIPS_PATH,
         grid: EvaluationGrid | None = None,
+        revision_mode: bool = False,
+        consistency_mode: bool = False,
     ) -> None:
         self.manifest = manifest
         self.objects = objects
         self.visibility = visibility
         self.observations_path = observations_path
         self.skips_path = skips_path
+        self.revision_mode = revision_mode
+        self.consistency_mode = consistency_mode
         self.grid = grid or EvaluationGrid()
         self.anchors = calculate_anchors(objects, visibility, self.grid)
+        if consistency_mode:
+            sample = load_or_create_consistency_sample(self.anchors)
+            selected = {(row["gt_object_id"], int(row["frame_index"])) for row in sample["anchors"]}
+            self.anchors = {oid: [a for a in anchors if (oid, int(a["frame_index"])) in selected]
+                            for oid, anchors in self.anchors.items()}
         self.object_map = {row["gt_object_id"]: row for row in objects}
         self.intervals_by_object: dict[str, list[dict[str, str]]] = defaultdict(list)
         for row in visibility:
             self.intervals_by_object[row["gt_object_id"]].append(row)
         self.lock = threading.RLock()
-        self.observations = self._load_work(
-            observations_path, OBSERVATION_HEADERS, "observations"
-        )
+        if revision_mode:
+            self.observations = self._load_work(observations_path, REVISION_HEADERS, "revision observations")
+            self.v1_observations = _read_csv(REVIEW_ROOT / "gt_observations_R01.csv", OBSERVATION_HEADERS)
+            self.v1_by_key = {(r["gt_object_id"], int(r["frame_index"])): r for r in self.v1_observations}
+        else:
+            self.observations = self._load_work(observations_path, OBSERVATION_HEADERS, "observations")
+            self.v1_observations = []
+            self.v1_by_key = {}
         self.skips = self._load_work(skips_path, SKIP_HEADERS, "skips")
+        if revision_mode and not consistency_mode and not skips_path.exists():
+            self.skips = _read_csv(REVIEW_ROOT / "gt_observation_skips_R01.csv", SKIP_HEADERS)
         self.validate_work()
 
     @classmethod
@@ -348,6 +418,8 @@ class AnnotationState:
         observations_path: Path = OBSERVATIONS_PATH,
         skips_path: Path = SKIPS_PATH,
         grid: EvaluationGrid | None = None,
+        revision_mode: bool = False,
+        consistency_mode: bool = False,
     ) -> "AnnotationState":
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         objects = _read_csv(objects_path, OBJECT_HEADERS)
@@ -359,6 +431,8 @@ class AnnotationState:
             observations_path,
             skips_path,
             grid,
+            revision_mode,
+            consistency_mode,
         )
         state._validate_metadata()
         return state
@@ -455,8 +529,8 @@ class AnnotationState:
             if row["object_class"] != obj["object_class"]:
                 errors.append(f"{key_label}: object_class does not match GT object")
             expected_metadata = {
-                "schema_version": self.manifest["schema_version"],
-                "gt_dataset_id": self.manifest["gt_dataset_id"],
+                "schema_version": REVISION_SCHEMA_VERSION if self.revision_mode else self.manifest["schema_version"],
+                "gt_dataset_id": REVISION_DATASET_ID if self.revision_mode else self.manifest["gt_dataset_id"],
                 "video_id": self.manifest["video"]["video_id"],
             }
             for field, expected in expected_metadata.items():
@@ -493,10 +567,20 @@ class AnnotationState:
                 {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
                 {"x": foot_x, "y": foot_y},
                 tolerance=tolerance,
-            ):
+            ) and not self.revision_mode:
                 errors.append(f"{key_label}: foot point must lie inside box")
             if row["in_scope"].lower() != obj["in_scope"].lower():
                 errors.append(f"{key_label}: in_scope does not match object")
+            if self.revision_mode:
+                if row["ignore"] not in {"true", "false"}:
+                    errors.append(f"{key_label}: ignore must be true or false")
+                if row["label_source"] not in {"manual", "v1_box"}:
+                    errors.append(f"{key_label}: invalid label_source")
+                if row["revision_action"] not in {"kept", "adjusted", "redrawn", "new"}:
+                    errors.append(f"{key_label}: invalid revision_action")
+                allowed_attributes = {"umbrella=true", "pm=true", "truncated=true"}
+                if any(value not in allowed_attributes for value in row["attributes"].split(";") if value):
+                    errors.append(f"{key_label}: invalid attributes")
 
         skip_seen: set[tuple[str, int]] = set()
         for line_number, row in enumerate(self.skips, start=2):
@@ -550,6 +634,10 @@ class AnnotationState:
             "observations": len(observed),
             "skips": len(skipped),
             "missing": len(keys - resolved),
+            "kept": sum(r.get("revision_action") == "kept" for r in self.observations),
+            "adjusted": sum(r.get("revision_action") == "adjusted" for r in self.observations),
+            "redrawn": sum(r.get("revision_action") in {"redrawn", "new"} for r in self.observations),
+            "ignore": sum(r.get("ignore") == "true" for r in self.observations),
         }
 
     def object_observations(self, object_id: str) -> list[dict[str, str]]:
@@ -589,6 +677,9 @@ class AnnotationState:
         notes: str = "",
         copied_from_previous: bool = False,
         foot_adjusted: bool = False,
+        ignore: bool = False,
+        attributes: list[str] | None = None,
+        revision_action: str = "",
     ) -> dict[str, str]:
         with self.lock:
             if object_id not in self.object_map:
@@ -629,9 +720,23 @@ class AnnotationState:
             if copied_from_previous:
                 notes = _append_note(notes, "copied_from_previous")
             object_row = self.object_map[object_id]
+            if self.revision_mode:
+                original = self.v1_by_key.get((object_id, frame_index))
+                if original is None:
+                    label_source = "manual"
+                    revision_action = "new"
+                else:
+                    label_source = "v1_box"
+                    same_box = all(str(stored_box[k]) == original[k] for k in ("x1", "y1", "x2", "y2"))
+                    revision_action = "redrawn" if revision_action == "redrawn" else ("kept" if same_box else (revision_action or "adjusted"))
+                if revision_action not in {"kept", "adjusted", "redrawn", "new"}:
+                    raise AnnotationError("invalid revision_action")
+                attributes = sorted(set(attributes or []))
+                if any(value not in {"umbrella=true", "pm=true", "truncated=true"} for value in attributes):
+                    raise AnnotationError("unsupported attribute")
             row = {
-                "schema_version": str(self.manifest["schema_version"]),
-                "gt_dataset_id": str(self.manifest["gt_dataset_id"]),
+                "schema_version": REVISION_SCHEMA_VERSION if self.revision_mode else str(self.manifest["schema_version"]),
+                "gt_dataset_id": REVISION_DATASET_ID if self.revision_mode else str(self.manifest["gt_dataset_id"]),
                 "video_id": str(self.manifest["video"]["video_id"]),
                 "gt_object_id": object_id,
                 "frame_index": str(frame_index),
@@ -657,6 +762,9 @@ class AnnotationState:
                 .replace("+00:00", "Z"),
                 "notes": notes,
             }
+            if self.revision_mode:
+                row.update({"ignore": str(bool(ignore)).lower(), "attributes": ";".join(attributes or []),
+                            "label_source": label_source, "revision_action": revision_action})
             self.skips = [
                 item
                 for item in self.skips
@@ -670,7 +778,7 @@ class AnnotationState:
             ]
             self.observations.append(row)
             self.observations.sort(key=lambda item: (item["gt_object_id"], int(item["frame_index"])))
-            self._write(self.observations_path, OBSERVATION_HEADERS, self.observations)
+            self._write(self.observations_path, REVISION_HEADERS if self.revision_mode else OBSERVATION_HEADERS, self.observations)
             return row
 
     def save_skip(self, object_id: str, frame_index: int, reason: str, notes: str = "") -> dict[str, str]:
@@ -697,7 +805,7 @@ class AnnotationState:
             }
             self.skips.append(row)
             self.skips.sort(key=lambda item: (item["gt_object_id"], int(item["frame_index"])))
-            self._write(self.observations_path, OBSERVATION_HEADERS, self.observations)
+            self._write(self.observations_path, REVISION_HEADERS if self.revision_mode else OBSERVATION_HEADERS, self.observations)
             self._write(self.skips_path, SKIP_HEADERS, self.skips)
             return row
 
@@ -842,6 +950,7 @@ header,.panel,.toolbar{background:var(--panel);border:1px solid var(--line);bord
 <button id="zoomOut">− 축소</button><button id="zoomIn">+ 확대</button><button id="zoomReset">0 화면 맞춤</button>
 <button id="playAround">P ±1초 재생</button><label><input id="showOthers" type="checkbox" checked> 같은 프레임 다른 객체 박스</label>
 <button id="copyPrevious">C 복사 후 조정</button><button id="copySaveNext">V 복사·저장·다음</button><button id="editFoot">F 발점 수정</button>
+<label id="ignoreWrap" class="off"><input id="ignoreToggle" type="checkbox"> 무시영역</label><label id="umbrellaWrap" class="off"><input id="umbrellaToggle" type="checkbox"> 우산</label><label id="pmWrap" class="off"><input id="pmToggle" type="checkbox"> PM</label><label id="truncatedWrap" class="off"><input id="truncatedToggle" type="checkbox"> 화면 잘림</label>
 <button id="undo">Ctrl+Z 되돌리기</button><button id="redraw">박스 다시 그리기</button><button id="skipButton">K 건너뛰기</button><button id="saveNext" class="primary">Enter 저장 후 다음</button></section>
 <section class="views"><div class="panel"><h2>전체 원본 프레임</h2><div class="canvas-wrap overview"><canvas id="overview"></canvas></div><div class="legend">전체 프레임을 클릭하면 확대 중심을 옮깁니다. 파란 사각형은 현재 확대 범위입니다.</div></div>
 <div class="panel"><h2>확대 입력창 <span id="zoomLabel" class="meta"></span></h2><div class="canvas-wrap"><canvas id="detail"></canvas></div><div class="legend">박스 안을 드래그하면 박스와 발점이 함께 이동합니다. 박스 밖을 드래그하면 새 박스를 그립니다. 마우스 휠로 포인터 위치를 중심으로 최대 30배까지 확대할 수 있습니다. 발점만 바꾸려면 F를 누르고 박스 안을 클릭합니다.</div></div></section>
@@ -851,6 +960,7 @@ header,.panel,.toolbar{background:var(--panel);border:1px solid var(--line);bord
 "use strict";
 const overview=document.getElementById("overview"),detail=document.getElementById("detail"),ctxO=overview.getContext("2d"),ctxD=detail.getContext("2d");
 let state=null, objectIndex=0, anchorIndex=0, frame=null, visibility=null, image=null, imageUrl=null, observations=[], others=[], saved=null, previous=null, skip=null;
+let redrawn=false;
 let zoom=1, center={x:1920,y:1080}, crop=null, box=null, foot=null, dirty=false, drag=null, footMode=false, footAdjusted=false, showOthers=true, copied=false, undoStack=[], playing=false, playbackToken=0;
 function storedBox(b){return {x1:Math.round(b.x1),y1:Math.round(b.y1),x2:Math.round(b.x2),y2:Math.round(b.y2)}}
 function defaultFoot(b){const q=storedBox(b);return {x:(q.x1+q.x2)/2,y:q.y2}}
@@ -862,7 +972,7 @@ async function request(url,options={}){const r=await fetch(url,{cache:"no-store"
 function currentObject(){return state.objects[objectIndex]}
 function currentAnchor(){return currentObject().anchors[anchorIndex]}
 function firstPendingIndex(o){const rows=[...o.observations,...o.skips],done=new Set(rows.map(r=>+r.frame_index));const ix=o.anchors.findIndex(a=>!done.has(+a.frame_index));return ix<0?Math.max(0,o.anchors.length-1):ix}
-function updateDirty(){const notes=document.getElementById("observationNotes").value;let matchesSaved=false;if(saved&&box){matchesSaved=box.x1===+saved.x1&&box.y1===+saved.y1&&box.x2===+saved.x2&&box.y2===+saved.y2&&foot&&foot.x===+saved.foot_x&&foot.y===+saved.foot_y&&notes===saved.notes&&copied===saved.notes.includes("copied_from_previous")&&footAdjusted===saved.notes.includes("foot_adjusted")}const matchesSkip=!!skip&&!box&&!foot&&!notes;const empty=!saved&&!skip&&!box&&!foot&&!copied&&!footAdjusted&&!notes;dirty=!(matchesSaved||matchesSkip||empty);document.getElementById("dirtyLabel").textContent=dirty?"저장 전 변경 있음":"저장됨";document.getElementById("dirtyLabel").style.color=dirty?"#ffd166":""}
+function updateDirty(){const notes=document.getElementById("observationNotes").value;let matchesSaved=false;if(saved&&box){matchesSaved=box.x1===+saved.x1&&box.y1===+saved.y1&&box.x2===+saved.x2&&box.y2===+saved.y2&&foot&&foot.x===+saved.foot_x&&foot.y===+saved.foot_y&&notes===saved.notes&&(!state.revisionMode||(document.getElementById("ignoreToggle").checked===(saved.ignore==="true")&&document.getElementById("umbrellaToggle").checked===saved.attributes.split(";").includes("umbrella=true")&&document.getElementById("pmToggle").checked===saved.attributes.split(";").includes("pm=true")&&document.getElementById("truncatedToggle").checked===saved.attributes.split(";").includes("truncated=true")))&&copied===saved.notes.includes("copied_from_previous")&&footAdjusted===saved.notes.includes("foot_adjusted")}const matchesSkip=!!skip&&!box&&!foot&&!notes;const empty=!saved&&!skip&&!box&&!foot&&!copied&&!footAdjusted&&!notes;dirty=!(matchesSaved||matchesSkip||empty);document.getElementById("dirtyLabel").textContent=dirty?"저장 전 변경 있음":"저장됨";document.getElementById("dirtyLabel").style.color=dirty?"#ffd166":""}
 function markSaved(){dirty=false;undoStack=[];document.getElementById("dirtyLabel").textContent="저장됨";document.getElementById("dirtyLabel").style.color=""}
 function fitZoom(){zoom=currentObject().object_class==="person"||currentObject().object_class==="bicycle"?3:1}
 window.calculateCrop=(cx,cy,z)=>{const w=Math.max(1,Math.round(3840/z)),h=Math.max(1,Math.round(2160/z));return {left:Math.min(Math.max(0,Math.round(cx-w/2)),3840-w),top:Math.min(Math.max(0,Math.round(cy-h/2)),2160-h),width:w,height:h}}
@@ -877,17 +987,17 @@ if(previous)drawBox(ctxD,{x1:+previous.x1-crop.left,y1:+previous.y1-crop.top,x2:
 if(box)drawBox(ctxD,{x1:box.x1-crop.left,y1:box.y1-crop.top,x2:box.x2-crop.left,y2:box.y2-crop.top},"#ffd166",7,1,currentObject().gt_object_id);
 if(previous)drawPoint(ctxD,{x:+previous.foot_x-crop.left,y:+previous.foot_y-crop.top},"#68d7ff");if(foot)drawPoint(ctxD,{x:foot.x-crop.left,y:foot.y-crop.top},"#ff5678");
 document.getElementById("zoomLabel").textContent=`${zoom.toFixed(1)}× · source ${crop.width}×${crop.height}`}
-function updateObjectInfo(){const o=currentObject(),anchors=o.anchors;document.getElementById("objectInfo").textContent=`${o.gt_object_id} · ${o.object_class}${o.notes?" · "+o.notes:""}`;document.getElementById("objectProgress").textContent=`객체 ${o.done}/${o.total} ${o.complete?"완료":"미완료"}`;document.getElementById("totalProgress").textContent=`전체 ${state.summary.observations+state.summary.skips}/${state.summary.anchors} · 미입력 ${state.summary.missing}`;objectSelect.value=o.gt_object_id;if(!anchors.length){document.getElementById("anchorLabel").textContent="분모 포함 앵커 없음";return}document.getElementById("anchorLabel").textContent=`앵커 ${anchorIndex+1}/${anchors.length} · source frame ${frame}`;document.getElementById("visibilityLabel").textContent=visibility||""}
-function restoreAnchor(){const a=currentAnchor();if(!a){box=null;saved=null;previous=null;skip=null;observations=[];others=[];visibility="";updateObjectInfo();render();return}frame=+a.frame_index;const o=currentObject();const savedForAnchor=o.observations.find(r=>+r.frame_index===frame)||null;const skipped=o.skips.find(r=>+r.frame_index===frame)||null;saved=savedForAnchor;skip=skipped;box=saved?{x1:+saved.x1,y1:+saved.y1,x2:+saved.x2,y2:+saved.y2}:null;foot=saved?{x:+saved.foot_x,y:+saved.foot_y}:null;copied=!!(saved&&saved.notes.includes("copied_from_previous"));footAdjusted=!!(saved&&saved.notes.includes("foot_adjusted"));document.getElementById("observationNotes").value=saved?saved.notes:"";const prior=o.observations.filter(r=>+r.frame_index<frame);observations=prior;previous=prior.length?prior[prior.length-1]:null;visibility=a.visibility_status;others=(state.sameFrame[String(frame)]||[]).filter(r=>r.gt_object_id!==o.gt_object_id);const centerGuess=state.predictedCenter[String(frame)];if(saved){center={x:(+saved.x1 + +saved.x2)/2,y:(+saved.y1 + +saved.y2)/2}}else if(centerGuess){center={x:centerGuess[0],y:centerGuess[1]}}else if(previous){center={x:(+previous.x1 + +previous.x2)/2,y:(+previous.y1 + +previous.y2)/2}}else{center={x:1920,y:1080}}crop=window.calculateCrop(center.x,center.y,zoom);markSaved();updateObjectInfo();loadFrame();}
+function updateObjectInfo(){const o=currentObject(),anchors=o.anchors;document.getElementById("objectInfo").textContent=`${o.gt_object_id} · ${o.object_class}${o.notes?" · "+o.notes:""}`;document.getElementById("objectProgress").textContent=`객체 ${o.done}/${o.total} ${o.complete?"완료":"미완료"}`;document.getElementById("totalProgress").textContent=state.revisionMode?`재검토 ${state.summary.observations}/960 · skip ${state.summary.skips} · kept ${state.summary.kept} · adjusted ${state.summary.adjusted} · redrawn ${state.summary.redrawn} · ignore ${state.summary.ignore}`:`전체 ${state.summary.observations+state.summary.skips}/${state.summary.anchors} · 미입력 ${state.summary.missing}`;objectSelect.value=o.gt_object_id;if(!anchors.length){document.getElementById("anchorLabel").textContent="분모 포함 앵커 없음";return}document.getElementById("anchorLabel").textContent=`앵커 ${anchorIndex+1}/${anchors.length} · source frame ${frame}`;document.getElementById("visibilityLabel").textContent=visibility||""}
+function restoreAnchor(){const a=currentAnchor();if(!a){box=null;saved=null;previous=null;skip=null;observations=[];others=[];visibility="";updateObjectInfo();render();return}frame=+a.frame_index;const o=currentObject();const savedForAnchor=o.observations.find(r=>+r.frame_index===frame)||null;const original=(o.v1Initial||[]).find(r=>+r.frame_index===frame)||null;const skipped=o.skips.find(r=>+r.frame_index===frame)||null;saved=savedForAnchor;skip=skipped;const initial=saved||original;box=initial?{x1:+initial.x1,y1:+initial.y1,x2:+initial.x2,y2:+initial.y2}:null;foot=initial?defaultFoot(box):null;redrawn=false;copied=!!(saved&&saved.notes.includes("copied_from_previous"));footAdjusted=false;document.getElementById("observationNotes").value=saved?saved.notes:"";if(document.getElementById("ignoreToggle"))document.getElementById("ignoreToggle").checked=!!(saved&&saved.ignore==="true");if(document.getElementById("umbrellaToggle"))document.getElementById("umbrellaToggle").checked=!!(saved&&saved.attributes.split(";").includes("umbrella=true"));if(document.getElementById("pmToggle"))document.getElementById("pmToggle").checked=!!(saved&&saved.attributes.split(";").includes("pm=true"));if(document.getElementById("truncatedToggle"))document.getElementById("truncatedToggle").checked=!!(saved&&saved.attributes.split(";").includes("truncated=true"));const prior=o.observations.filter(r=>+r.frame_index<frame);observations=state.consistencyMode?[]:prior;previous=state.consistencyMode?null:(prior.length?prior[prior.length-1]:null);visibility=a.visibility_status;others=state.consistencyMode?[]:(state.sameFrame[String(frame)]||[]).filter(r=>r.gt_object_id!==o.gt_object_id);const centerGuess=state.predictedCenter[String(frame)];if(initial){center={x:(+initial.x1 + +initial.x2)/2,y:(+initial.y1 + +initial.y2)/2}}else if(centerGuess){center={x:centerGuess[0],y:centerGuess[1]}}else if(previous){center={x:(+previous.x1 + +previous.x2)/2,y:(+previous.y1 + +previous.y2)/2}}else{center={x:1920,y:1080}}crop=window.calculateCrop(center.x,center.y,zoom);markSaved();updateObjectInfo();loadFrame();}
 async function loadFrame(quality="full",sourceFrame=frame){try{const url=`/api/frame/${sourceFrame}?quality=${quality}&left=${crop.left}&top=${crop.top}&width=${crop.width}&height=${crop.height}`;const r=await request(url);const blob=await r.blob();const nextUrl=URL.createObjectURL(blob);const next=new Image();await new Promise((resolve,reject)=>{next.onload=resolve;next.onerror=reject;next.src=nextUrl});if(imageUrl)URL.revokeObjectURL(imageUrl);imageUrl=nextUrl;image=next;if(quality==="play"){detail.width=1280;detail.height=Math.round(1280*crop.height/crop.width);ctxD.drawImage(image,0,0,detail.width,detail.height);document.getElementById("anchorLabel").textContent=`원본 재생 · frame ${sourceFrame}`;return}render();updateObjectInfo()}catch(e){setStatus(e.message,true)}}
-function payload(){return {gt_object_id:currentObject().gt_object_id,frame_index:frame,box,foot,notes:document.getElementById("observationNotes").value,copied_from_previous:copied,foot_adjusted:footAdjusted}}
+function payload(){return {gt_object_id:currentObject().gt_object_id,frame_index:frame,box,foot,notes:document.getElementById("observationNotes").value,copied_from_previous:copied,foot_adjusted:footAdjusted,ignore:document.getElementById("ignoreToggle")?.checked||false,attributes:[...(document.getElementById("umbrellaToggle")?.checked?["umbrella=true"]:[]),...(document.getElementById("pmToggle")?.checked?["pm=true"]:[]),...(document.getElementById("truncatedToggle")?.checked?["truncated=true"]:[])],revision_action:redrawn?"redrawn":""}}
 function localCanLeave(){if(!dirty)return true;return window.confirm("저장되지 않은 입력이 있습니다. 저장하지 않고 이동할까요?")}
 function refreshObjectList(){const select=document.getElementById("objectSelect");select.innerHTML=state.objects.map(o=>`<option value="${o.gt_object_id}">${o.complete?"✓":"○"} ${o.gt_object_id} · ${o.object_class} (${o.done}/${o.total})</option>`).join("");select.value=currentObject().gt_object_id}
 async function reloadState(){const r=await request(`/api/state?object_id=${encodeURIComponent(currentObject().gt_object_id)}&frame_index=${frame||0}`);state=await r.json();refreshObjectList()}
 async function moveAnchor(delta){if(!localCanLeave())return;const list=currentObject().anchors;const next=Math.max(0,Math.min(list.length-1,anchorIndex+delta));if(next===anchorIndex)return;anchorIndex=next;await reloadState();restoreAnchor()}
 async function moveObject(delta){if(!localCanLeave())return;const next=Math.max(0,Math.min(state.objects.length-1,objectIndex+delta));if(next===objectIndex)return;objectIndex=next;anchorIndex=firstPendingIndex(currentObject());fitZoom();await reloadState();restoreAnchor()}
 async function moveToObject(id){if(!localCanLeave()){objectSelect.value=currentObject().gt_object_id;return}const found=state.objects.findIndex(o=>o.gt_object_id===id);if(found<0)return;objectIndex=found;anchorIndex=firstPendingIndex(currentObject());fitZoom();await reloadState();restoreAnchor()}
-async function saveAndAdvance(){if(skip){if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;await reloadState();restoreAnchor()}else{setStatus("현재 객체의 마지막 앵커입니다.")}return}if(!box)return setStatus("박스가 없습니다. 드래그로 입력하거나 K로 건너뛰기 사유를 선택하세요.",true);const persistedBox=storedBox(box);if(footAdjusted&&!footInside(persistedBox,foot))return setStatus("수정한 발점은 저장될 박스 안에 있어야 합니다. F로 다시 지정하세요.",true);try{const r=await request("/api/observation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload())});const savedRow=await r.json();saved=savedRow.row;dirty=false;markSaved();setStatus("관측행 저장됨");await reloadState();if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;restoreAnchor()}else{updateObjectInfo()}}catch(e){setStatus(e.message,true)}}
+async function saveAndAdvance(){if(skip){if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;await reloadState();restoreAnchor()}else{setStatus("현재 객체의 마지막 앵커입니다.")}return}if(!box)return setStatus("박스가 없습니다. 드래그로 입력하거나 K로 건너뛰기 사유를 선택하세요.",true);const persistedBox=storedBox(box);if(!state.revisionMode&&footAdjusted&&!footInside(persistedBox,foot))return setStatus("수정한 발점은 저장될 박스 안에 있어야 합니다. F로 다시 지정하세요.",true);try{const r=await request("/api/observation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload())});const savedRow=await r.json();saved=savedRow.row;dirty=false;markSaved();setStatus("관측행 저장됨");await reloadState();if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;restoreAnchor()}else{updateObjectInfo()}}catch(e){setStatus(e.message,true)}}
 function markUndo(){undoStack.push({box:box?{...box}:null,foot:foot?{...foot}:null,skip:skip?{...skip}:null,copied,footAdjusted,notes:document.getElementById("observationNotes").value});if(undoStack.length>10)undoStack.shift()}
 function undo(){if(!undoStack.length)return setStatus("되돌릴 입력이 없습니다.");const s=undoStack.pop();box=s.box;foot=s.foot;skip=s.skip;copied=s.copied;footAdjusted=s.footAdjusted;document.getElementById("observationNotes").value=s.notes;updateDirty();render()}
 function drawRectStart(e){const r=detail.getBoundingClientRect();const scaleX=crop.width/r.width,scaleY=crop.height/r.height;const x=(e.clientX-r.left)*scaleX+crop.left,y=(e.clientY-r.top)*scaleY+crop.top;return {x,y}}
@@ -895,7 +1005,7 @@ function zoomAroundPointer(e,factor){if(!crop)return;const r=detail.getBoundingC
 detail.addEventListener("wheel",e=>{e.preventDefault();zoomAroundPointer(e,e.deltaY<0?1.2:1/1.2)},{passive:false});
 detail.addEventListener("pointerdown",e=>{if(playing)return;detail.setPointerCapture(e.pointerId);const p=drawRectStart(e);if(footMode){if(!box){footMode=false;return setStatus("먼저 박스를 그린 뒤 F를 눌러 발점을 수정하세요.",true)}if(p.x<box.x1||p.x>box.x2||p.y<box.y1||p.y>box.y2)return setStatus("발점은 박스 안에서 클릭하세요. 확대하려면 마우스 휠을 사용하세요.",true);markUndo();foot=p;footAdjusted=true;footMode=false;updateDirty();render();setStatus("발점 수정됨");return}markUndo();const inBox=box&&p.x>=box.x1&&p.x<=box.x2&&p.y>=box.y1&&p.y<=box.y2;drag=inBox?{mode:"move",start:p,current:p,originalBox:{...box},originalFoot:foot?{...foot}:null,changed:false}:{mode:"draw",start:p,current:p,changed:false}});
 detail.addEventListener("pointermove",e=>{if(!drag){const p=drawRectStart(e);detail.style.cursor=box&&p.x>=box.x1&&p.x<=box.x2&&p.y>=box.y1&&p.y<=box.y2?"move":"crosshair";return}drag.current=drawRectStart(e);const dx=drag.current.x-drag.start.x,dy=drag.current.y-drag.start.y;if(Math.abs(dx)+Math.abs(dy)<1)return;drag.changed=true;skip=null;if(drag.mode==="move"){const b=drag.originalBox,w=b.x2-b.x1,h=b.y2-b.y1,x1=Math.min(Math.max(0,b.x1+dx),3840-w),y1=Math.min(Math.max(0,b.y1+dy),2160-h),actualX=x1-b.x1,actualY=y1-b.y1;box={x1,y1,x2:x1+w,y2:y1+h};if(footAdjusted&&drag.originalFoot)foot={x:drag.originalFoot.x+actualX,y:drag.originalFoot.y+actualY};else foot=defaultFoot(box)}else{const a=drag.start,b=drag.current;footAdjusted=false;box={x1:Math.min(a.x,b.x),y1:Math.min(a.y,b.y),x2:Math.max(a.x,b.x),y2:Math.max(a.y,b.y)};foot=defaultFoot(box)}updateDirty();render()});
-detail.addEventListener("pointerup",()=>{if(!drag)return;const changed=drag.changed,mode=drag.mode;drag=null;if(changed&&box&&box.x2-box.x1>=1&&box.y2-box.y1>=1){updateDirty();setStatus(mode==="move"?"박스와 발점을 함께 이동했습니다 · Enter로 저장":"박스 입력됨 · Enter로 저장")}else{if(!changed)undoStack.pop();else if(mode==="draw"){box=null;foot=null;updateDirty()}render()}});
+detail.addEventListener("pointerup",()=>{if(!drag)return;const changed=drag.changed,mode=drag.mode;drag=null;if(changed&&box&&box.x2-box.x1>=1&&box.y2-box.y1>=1){if(mode==="draw")redrawn=true;updateDirty();setStatus(mode==="move"?"박스와 발점을 함께 이동했습니다 · Enter로 저장":"박스 입력됨 · Enter로 저장")}else{if(!changed)undoStack.pop();else if(mode==="draw"){box=null;foot=null;updateDirty()}render()}});
 overview.addEventListener("click",e=>{if(playing)return;const r=overview.getBoundingClientRect();const p=drawRectStartForOverview(e,r);center=p;crop=window.calculateCrop?window.calculateCrop(center.x,center.y,zoom):{left:Math.max(0,Math.round(center.x-1920/zoom)),top:Math.max(0,Math.round(center.y-1080/zoom)),width:Math.round(3840/zoom),height:Math.round(2160/zoom)};render()});
 function drawRectStartForOverview(e,r){return {x:(e.clientX-r.left)*3840/r.width,y:(e.clientY-r.top)*2160/r.height}}
 document.getElementById("showOthers").addEventListener("change",e=>{showOthers=e.target.checked;render()});
@@ -905,14 +1015,14 @@ document.getElementById("zoomIn").onclick=()=>{zoom=Math.min(12,zoom*1.5);crop=w
 document.getElementById("zoomOut").onclick=()=>{zoom=Math.max(1,zoom/1.5);crop=window.calculateCrop?window.calculateCrop(center.x,center.y,zoom):crop;render()};
 document.getElementById("zoomReset").onclick=()=>{fitZoom();crop=window.calculateCrop?window.calculateCrop(center.x,center.y,zoom):crop;render()};
 document.getElementById("editFoot").onclick=()=>{footMode=!footMode;setStatus(footMode?"확대 입력창에서 새 발점을 클릭하세요.":"발점 수정 모드를 종료했습니다.")};
-document.getElementById("redraw").onclick=()=>{markUndo();box=null;foot=null;skip=null;copied=false;footAdjusted=false;updateDirty();render()};document.getElementById("undo").onclick=undo;
+document.getElementById("redraw").onclick=()=>{markUndo();redrawn=true;box=null;foot=null;skip=null;copied=false;footAdjusted=false;updateDirty();render()};document.getElementById("undo").onclick=undo;
 function previousObservation(){return currentObject().observations.filter(r=>+r.frame_index<frame).sort((a,b)=>+b.frame_index-+a.frame_index)[0]||null}
 function setCopiedBox(prev){box={x1:+prev.x1,y1:+prev.y1,x2:+prev.x2,y2:+prev.y2};foot=defaultFoot(box);footAdjusted=false;copied=true;skip=null}
 document.getElementById("copyPrevious").onclick=()=>{const prev=previousObservation();if(!prev)return setStatus("복사할 직전 GT 박스가 없습니다.",true);markUndo();setCopiedBox(prev);updateDirty();render();setStatus("직전 박스를 복사했습니다. 위치를 조정한 뒤 Enter로 저장하세요.")};
 async function copyPreviousSaveNext(){const prev=previousObservation();if(!prev)return setStatus("복사할 직전 GT 박스가 없습니다.",true);setCopiedBox(prev);updateDirty();render();setStatus("현재 표시 중인 프레임에 직전 박스를 복사해 저장합니다.");await saveAndAdvance()}
 document.getElementById("copySaveNext").onclick=copyPreviousSaveNext;
 document.getElementById("saveNext").onclick=saveAndAdvance;
-document.getElementById("observationNotes").addEventListener("input",updateDirty);
+document.getElementById("observationNotes").addEventListener("input",updateDirty);document.getElementById("ignoreToggle").addEventListener("change",updateDirty);document.getElementById("umbrellaToggle").addEventListener("change",updateDirty);document.getElementById("pmToggle").addEventListener("change",updateDirty);document.getElementById("truncatedToggle").addEventListener("change",updateDirty);
 function resetSkipForm(){document.getElementById("skipReason").value="";document.getElementById("skipNotes").value=""}
 document.getElementById("skipButton").onclick=()=>{if(!localCanLeave())return;resetSkipForm();document.getElementById("skipModal").classList.add("open")};document.getElementById("cancelSkip").onclick=()=>document.getElementById("skipModal").classList.remove("open");
 document.getElementById("confirmSkip").onclick=async()=>{const reason=document.getElementById("skipReason").value;if(!reason)return setStatus("건너뛰기 사유를 선택하세요.",true);try{await request("/api/skip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({gt_object_id:currentObject().gt_object_id,frame_index:frame,reason,notes:document.getElementById("skipNotes").value})});resetSkipForm();document.getElementById("skipModal").classList.remove("open");skip={reason};await reloadState();if(anchorIndex<currentObject().anchors.length-1){anchorIndex++;fitZoom();restoreAnchor()}else{updateObjectInfo();setStatus("건너뛰기 저장됨")}}catch(e){setStatus(e.message,true)}};
@@ -920,9 +1030,9 @@ async function playAround(){if(playing){playing=false;playbackToken++;await load
 document.getElementById("playAround").onclick=playAround;
 document.getElementById("fullScreen").onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch(e){setStatus(`전체 화면 전환 실패: ${e.message}`,true)}};
 window.addEventListener("resize",()=>{if(image)render()});document.addEventListener("fullscreenchange",()=>{if(image)render()});
-document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName))return;if(e.key==="ArrowLeft")moveAnchor(-1);else if(e.key==="ArrowRight")moveAnchor(1);else if(e.key==="Enter"){e.preventDefault();saveAndAdvance()}else if(e.key.toLowerCase()==="k")document.getElementById("skipButton").click();else if(e.key.toLowerCase()==="n")moveObject(e.shiftKey?-1:1);else if(e.key.toLowerCase()==="f")document.getElementById("editFoot").click();else if(e.key.toLowerCase()==="c")document.getElementById("copyPrevious").click();else if(e.key.toLowerCase()==="v")copyPreviousSaveNext();else if(e.key.toLowerCase()==="p")playAround();else if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}else if(e.key==="+")document.getElementById("zoomIn").click();else if(e.key==="-")document.getElementById("zoomOut").click();else if(e.key==="0")document.getElementById("zoomReset").click();else if(e.key==="Escape"){drag=null;footMode=false;setStatus("현재 동작을 취소했습니다.")}});
+document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName))return;if(e.key==="ArrowLeft")moveAnchor(-1);else if(e.key==="ArrowRight")moveAnchor(1);else if(e.key==="Enter"){e.preventDefault();saveAndAdvance()}else if(e.key.toLowerCase()==="k")document.getElementById("skipButton").click();else if(e.key.toLowerCase()==="n")moveObject(e.shiftKey?-1:1);else if(e.key.toLowerCase()==="f"&&!state.revisionMode)document.getElementById("editFoot").click();else if(e.key.toLowerCase()==="c"&&!state.consistencyMode)document.getElementById("copyPrevious").click();else if(e.key.toLowerCase()==="v"&&!state.revisionMode)copyPreviousSaveNext();else if(state.revisionMode&&e.key.toLowerCase()==="i")document.getElementById("ignoreToggle").click();else if(state.revisionMode&&e.key.toLowerCase()==="u")document.getElementById("umbrellaToggle").click();else if(state.revisionMode&&e.key.toLowerCase()==="m")document.getElementById("pmToggle").click();else if(state.revisionMode&&e.key.toLowerCase()==="t")document.getElementById("truncatedToggle").click();else if(e.key.toLowerCase()==="p")playAround();else if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}else if(e.key==="+")document.getElementById("zoomIn").click();else if(e.key==="-")document.getElementById("zoomOut").click();else if(e.key==="0")document.getElementById("zoomReset").click();else if(e.key==="Escape"){drag=null;footMode=false;setStatus("현재 동작을 취소했습니다.")}});
 window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
-async function init(){try{const r=await request("/api/state");state=await r.json();if(!state.objects.length)throw new Error("입력할 객체가 없습니다.");objectIndex=state.resume.objectIndex;anchorIndex=state.resume.anchorIndex;fitZoom();await reloadState();refreshObjectList();restoreAnchor()}catch(e){setStatus(e.message,true)}}
+async function init(){try{const r=await request("/api/state");state=await r.json();if(!state.objects.length)throw new Error("입력할 객체가 없습니다.");if(state.revisionMode){document.getElementById("copySaveNext").classList.add("off");document.getElementById("editFoot").classList.add("off");document.getElementById("copyPrevious").textContent="C v1 박스 복원";if(state.consistencyMode)document.getElementById("copyPrevious").classList.add("off");document.getElementById("ignoreWrap").classList.remove("off");document.getElementById("umbrellaWrap").classList.remove("off");if(state.consistencyMode){document.getElementById("ignoreWrap").classList.add("off");document.getElementById("umbrellaWrap").classList.add("off");document.getElementById("pmWrap").classList.add("off");document.getElementById("truncatedWrap").classList.add("off")}else{document.getElementById("pmWrap").classList.remove("off");document.getElementById("truncatedWrap").classList.remove("off")}}objectIndex=state.resume.objectIndex;anchorIndex=state.resume.anchorIndex;fitZoom();await reloadState();refreshObjectList();restoreAnchor()}catch(e){setStatus(e.message,true)}}
 init();
 </script></body></html>"""
 
@@ -936,6 +1046,9 @@ def state_payload(state: AnnotationState, object_id: str = "", frame_index: int 
     for index, obj in enumerate(state.objects):
         object_key = obj["gt_object_id"]
         anchors = state.anchors[object_key]
+        if state.consistency_mode and not anchors:
+            continue
+        index = len(objects)
         saved_rows = state.object_observations(object_key)
         skips = [r for r in state.skips if r["gt_object_id"] == object_key]
         objects.append(
@@ -944,6 +1057,7 @@ def state_payload(state: AnnotationState, object_id: str = "", frame_index: int 
                 "anchors": anchors,
                 "observations": saved_rows,
                 "skips": skips,
+                "v1Initial": [] if state.consistency_mode else [r for r in getattr(state, "v1_observations", []) if r["gt_object_id"] == object_key],
             }
         )
         if object_key == object_id:
@@ -972,7 +1086,7 @@ def state_payload(state: AnnotationState, object_id: str = "", frame_index: int 
     for row in all_observations:
         same_frame[row["frame_index"]].append(row)
     predicted: dict[int, tuple[float, float]] = {}
-    if object_id in state.object_map:
+    if object_id in state.object_map and not state.consistency_mode:
         for anchor in state.anchors[object_id]:
             frame = int(anchor["frame_index"])
             center = predict_zoom_center(state.object_observations(object_id), frame)
@@ -982,6 +1096,8 @@ def state_payload(state: AnnotationState, object_id: str = "", frame_index: int 
     return {
         "objects": objects,
         "summary": summary,
+        "revisionMode": state.revision_mode,
+        "consistencyMode": state.consistency_mode,
         "sourceFps": state.grid.source_fps,
         "frameCount": int(video_metadata["source_frame_count"]),
         "resume": {
@@ -1040,6 +1156,9 @@ class AnnotationHandler(BaseHTTPRequestHandler):
                     str(payload.get("notes", "")),
                     bool(payload.get("copied_from_previous", False)),
                     bool(payload.get("foot_adjusted", False)),
+                    bool(payload.get("ignore", False)),
+                    list(payload.get("attributes", [])),
+                    str(payload.get("revision_action", "")),
                 )
                 return self._json(HTTPStatus.OK, {"row": row})
             if self.path == "/api/skip":
@@ -1105,7 +1224,17 @@ class AnnotationHandler(BaseHTTPRequestHandler):
 
 
 def run_box_mode(args: argparse.Namespace) -> None:
-    state = AnnotationState.from_paths()
+    consistency_mode = bool(getattr(args, "consistency_review", False))
+    revision_mode = bool(getattr(args, "revision_v2", False) or consistency_mode)
+    state = AnnotationState.from_paths(
+        observations_path=CONSISTENCY_OBSERVATIONS_PATH if consistency_mode else (REVISION_OBSERVATIONS_PATH if revision_mode else OBSERVATIONS_PATH),
+        skips_path=CONSISTENCY_SKIPS_PATH if consistency_mode else (REVISION_SKIPS_PATH if revision_mode else SKIPS_PATH),
+        revision_mode=revision_mode,
+        consistency_mode=consistency_mode,
+    )
+    if getattr(args, "consistency_summary", False):
+        print_consistency_summary(state)
+        return
     if args.size_outliers:
         size_outliers_only(state)
         return
@@ -1123,7 +1252,7 @@ def run_box_mode(args: argparse.Namespace) -> None:
     if reader.frame_count < state.grid.end_frame + 1:
         raise SystemExit(f"video does not contain evaluation frame {state.grid.end_frame}")
     server = AnnotationServer((args.host, args.port), state, reader)
-    print(f"blind GT box input: http://127.0.0.1:{args.port}", flush=True)
+    print(f"blind GT box input{' consistency review' if consistency_mode else (' v2 review' if revision_mode else '')}: http://127.0.0.1:{args.port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

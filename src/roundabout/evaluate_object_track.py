@@ -141,6 +141,7 @@ def maximum_missing_anchors(anchor_frames: list[int], matched_frames: set[int]) 
 def class_compatible(gt_class: str, auto_class: str) -> bool:
     compatible = {
         "person": {"person"},
+        "bicycle": {"bicycle"},
         "car": {"car", "bus", "truck"},
         "motorcycle": {"motorcycle"},
     }

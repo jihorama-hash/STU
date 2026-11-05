@@ -11,6 +11,7 @@ from roundabout.evaluate_detection import (
     complete_detection_frames, configured_average_precision,
     decompose_tracker_loss, detection_metrics,
     load_validated_detection_artifact, validate_inference_metadata,
+    load_evaluation_config, rider_inside_vehicle_sensitivity,
 )
 
 
@@ -27,6 +28,25 @@ class DetectionEvaluationTests(unittest.TestCase):
             "frame_index": 10, "object_class": "person", "confidence": 0.8,
             "box": [20.0, 20.0, 30.0, 30.0],
         }]
+
+    def test_rider_inside_vehicle_uses_config_and_counts_only_unmatched_people(self) -> None:
+        config_path = Path(__file__).parents[1] / "configs/evaluation_detection_v2.yaml"
+        config = load_evaluation_config(config_path)
+        rule = config["matching"]["rider_inside_vehicle"]
+        self.assertEqual(rule["evidence"], "C")
+        self.assertEqual(rule["containment_threshold"], 0.5)
+        detections = [
+            {"frame_index": 10, "object_class": "person", "box": [0, 0, 10, 10]},
+            {"frame_index": 10, "object_class": "person", "box": [0, 0, 10, 10]},
+            {"frame_index": 10, "object_class": "car", "box": [0, 0, 10, 10]},
+        ]
+        vehicles = [{
+            "frame_index": 10, "object_class": "motorcycle", "box": [0, 0, 6, 10],
+        }]
+        counts = rider_inside_vehicle_sensitivity(
+            detections, {1}, vehicles, config,
+        )
+        self.assertEqual(counts, {0.3: 1, 0.5: 1, 0.7: 0})
 
     def test_operating_point_precision_recall_and_complete_frames(self) -> None:
         scores = detection_metrics(
