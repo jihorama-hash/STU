@@ -1,0 +1,88 @@
+schema_version: object_detection_evaluation_v2
+evaluation_run_id: r01_detection_only_v2_baseline_rescore
+evidence:
+  baseline_config: configs/baseline.json
+  user_decisions_date: 2026-11-05
+  ground_truth_manifest: data/ground_truth/object_track_v2/canonical/ground_truth_manifest.json
+evidence_basis:
+  iou_thresholds:
+    grade: C
+    source: TASK-006 matching rules and 2026-11-04 user decision 1
+  complete_frames:
+    grade: C
+    source: TASK-006 operating rule C and 2026-11-04 TASK-007 operating rule A
+  confidence_operating_points:
+    grade: C
+    source: 2026-11-04 user decision 3; diagnostic only, not for operating threshold selection
+  confidence_floor:
+    grade: C
+    source: 2026-11-04 TASK-007 operating rule C
+  coco_max_detections_per_image:
+    grade: C
+    source: 15 sliced tiles x Ultralytics max_det 300 per tile, with margin
+  crowd_ignore_matching:
+    grade: A
+    source: pycocotools COCOeval iscrowd matching semantics; same detection-area overlap rule for P/R
+  rider_inside_vehicle:
+    grade: C
+    source: 2026-11-05 user approval; site-specific box convention groups rider and two-wheeler into one GT box
+ground_truth:
+  directory: data/ground_truth/object_track_v2/canonical
+  video_id: DJI_0482
+  start_frame_index: 4196
+  end_frame_index: 5994
+  frame_step: 30
+  confidence_floor: 0.01
+  skip_file: gt_observation_skips.csv
+  frozen_files:
+    objects: gt_objects.csv
+    visibility_intervals: gt_visibility_intervals.csv
+    observations: gt_observations.csv
+matching:
+  iou_thresholds:
+    official: 0.5
+    sensitivity: 0.3
+  assignment: one_to_one_hungarian_per_frame
+  ignore_area_overlap:
+    metric: intersection_over_detection_area
+    official_iou_threshold: 0.5
+    sensitivity_iou_threshold: 0.3
+  class_agnostic: true
+  class_compatibility:
+    person: [person]
+    car: [car, bus, truck]
+    motorcycle: [motorcycle]
+    bicycle: [bicycle]
+  rider_inside_vehicle:
+    apply_to: unmatched_person_detections_after_gt_matching
+    overlap_metric: intersection_over_person_detection_area
+    containment_threshold: 0.5
+    sensitivity_thresholds: [0.3, 0.5, 0.7]
+    sensitivity_grouping: [iou_threshold, confidence]
+    evidence: C
+    source: 2026-11-05 user approval; site-specific manual taxonomy decision, not a literature-derived cutoff
+    rationale: >
+      GT motorcycle and bicycle boxes include the rider. After valid GT matching, count only unmatched
+      person detections whose box area is at least the configured fraction inside a same-frame motorcycle
+      or bicycle GT box. Report counts at 30%, 50%, and 70%; retain 50% as the primary threshold.
+  confidence_operating_points: [0.15, 0.25]
+  ap_iou_thresholds: [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+  coco:
+    area_range: all
+    max_detections: 5000
+frames:
+  precision_ap: complete_frames_only
+  recall: all_eligible_gt_observations
+  max_detections_per_tile: 300
+  coco_max_detections_per_image: 5000
+  inference_frames: common_grid_union_all_gt_observation_frames
+inference:
+  model: YOLO11m
+  weights: models/yolo11m.pt
+  class_profile: coco
+  slice_width: 1024
+  slice_height: 1024
+  slice_overlap: 0.2
+  image_size: 1024
+  nms_iou: 0.5
+  pass_id: A
