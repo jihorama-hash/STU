@@ -2,5 +2,6 @@ gt_object_id,frame_index,reason,notes
 P019,5126,occluded_more_than_marked,
 P019,5166,not_found,
 P020,5454,not_found,
-P026,5846,not_found,
-P027,5890,ambiguous_identity,
+P026,5846,occluded_more_than_marked,
+P027,5876,occluded_more_than_marked,
+P027,5890,occluded_more_than_marked,
