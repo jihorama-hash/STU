@@ -1,0 +1,170 @@
+"""Safety checks and label schema for the TASK-009 site fine-tuning pilot."""
+from __future__ import annotations
+
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import cv2
+import numpy as np
+
+
+CLASS_IDS = {
+    "person": 0,
+    "bicycle": 1,
+    "car": 2,
+    "motorcycle": 3,
+    "bus": 5,
+    "truck": 7,
+}
+ALLOWED_SPLITS = {"train", "validation"}
+ALLOWED_ATTRIBUTES = {"umbrella", "pm", "truncated"}
+ALLOWED_SOURCES = {"model_draft", "manual"}
+ALLOWED_ACTIONS = {"kept", "adjusted", "redrawn", "new"}
+
+
+class LabelValidationError(ValueError):
+    """Raised when a frame or label violates the training-label contract."""
+
+
+def load_frame_whitelist(path: Path) -> dict[tuple[str, int], dict[str, str]]:
+    """Load allowed frame IDs; test and excluded splits are rejected."""
+    allowed: dict[tuple[str, int], dict[str, str]] = {}
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        for row in csv.DictReader(stream):
+            clip = row["clip_id"]
+            frame = int(row["frame_index"])
+            split = row["split"]
+            if split not in ALLOWED_SPLITS:
+                raise LabelValidationError(f"forbidden split in frame list: {split}")
+            key = (clip, frame)
+            if key in allowed:
+                raise LabelValidationError(f"duplicate frame: {clip}@{frame}")
+            allowed[key] = row
+    return allowed
+
+
+def assert_frame_allowed(
+    whitelist: dict[tuple[str, int], dict[str, str]], clip_id: str, frame_index: int
+) -> dict[str, str]:
+    try:
+        return whitelist[(clip_id, int(frame_index))]
+    except KeyError as exc:
+        raise LabelValidationError(
+            f"frame is not in the approved train/validation list: {clip_id}@{frame_index}"
+        ) from exc
+
+
+def mask_outside_polygon(frame: np.ndarray, polygon_mask: np.ndarray,
+                         boxes: list[dict[str, Any]], gray: int = 96) -> np.ndarray:
+    """Gray outside the polygon while restoring pixels covered by labeled boxes."""
+    if frame.ndim != 3 or polygon_mask.shape != frame.shape[:2]:
+        raise LabelValidationError("frame and polygon mask dimensions must match")
+    result = frame.copy()
+    outside = polygon_mask == 0
+    result[outside] = gray
+    # Ignore boxes are explicitly masked, then valid labeled boxes are restored
+    # last so an overlapping visible object remains available for learning.
+    for obj in boxes:
+        if not obj.get("ignore", False):
+            continue
+        x1, y1, x2, y2 = [int(round(float(obj[k]))) for k in ("x1", "y1", "x2", "y2")]
+        x1, x2 = sorted((max(0, x1), min(frame.shape[1], x2)))
+        y1, y2 = sorted((max(0, y1), min(frame.shape[0], y2)))
+        if x2 > x1 and y2 > y1:
+            result[y1:y2, x1:x2] = gray
+    for obj in boxes:
+        if obj.get("ignore", False):
+            continue
+        x1, y1, x2, y2 = [int(round(float(obj[k]))) for k in ("x1", "y1", "x2", "y2")]
+        x1, x2 = sorted((max(0, x1), min(frame.shape[1], x2)))
+        y1, y2 = sorted((max(0, y1), min(frame.shape[0], y2)))
+        if x2 > x1 and y2 > y1:
+            result[y1:y2, x1:x2] = frame[y1:y2, x1:x2]
+    return result
+
+
+def validate_label_record(record: dict[str, Any], width: int, height: int) -> None:
+    required = {"object_id", "class_name", "class_id", "x1", "y1", "x2", "y2", "ignore",
+                "attributes", "label_source", "revision_action"}
+    missing = required - record.keys()
+    if missing:
+        raise LabelValidationError(f"missing label fields: {sorted(missing)}")
+    if record["class_name"] not in CLASS_IDS:
+        raise LabelValidationError(f"unsupported class: {record['class_name']}")
+    if record["class_id"] != CLASS_IDS[record["class_name"]]:
+        raise LabelValidationError("class_id must preserve the approved COCO80 index")
+    try:
+        x1, y1, x2, y2 = (float(record[k]) for k in ("x1", "y1", "x2", "y2"))
+    except (TypeError, ValueError) as exc:
+        raise LabelValidationError("box coordinates must be numeric") from exc
+    if not (0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height):
+        raise LabelValidationError("box must be non-empty and within source frame bounds")
+    if not isinstance(record["ignore"], bool):
+        raise LabelValidationError("ignore must be boolean")
+    if not isinstance(record["attributes"], list) or set(record["attributes"]) - ALLOWED_ATTRIBUTES:
+        raise LabelValidationError("attributes must be a list of approved attribute names")
+    if record["label_source"] not in ALLOWED_SOURCES:
+        raise LabelValidationError("label_source must be model_draft or manual")
+    if record["revision_action"] not in ALLOWED_ACTIONS:
+        raise LabelValidationError("revision_action is not an approved value")
+
+
+def validate_box_in_polygon(record: dict[str, Any], polygon_mask: np.ndarray) -> None:
+    """Require the box center to lie inside the approved TASK-009 polygon."""
+    x = int(round((float(record["x1"]) + float(record["x2"])) / 2))
+    y = int(round((float(record["y1"]) + float(record["y2"])) / 2))
+    x = min(polygon_mask.shape[1] - 1, max(0, x))
+    y = min(polygon_mask.shape[0] - 1, max(0, y))
+    if polygon_mask[y, x] == 0:
+        raise LabelValidationError("box center is outside the approved analysis polygon")
+
+
+def merge_boxes(boxes: list[dict[str, Any]], object_ids: list[str],
+                target_class: str) -> list[dict[str, Any]]:
+    """Replace selected boxes with one union box of a two-wheeler class."""
+    if target_class not in {"motorcycle", "bicycle"}:
+        raise LabelValidationError("merge target must be motorcycle or bicycle")
+    selected = [box for box in boxes if box["object_id"] in set(object_ids)]
+    if len(selected) < 2 or len(selected) != len(set(object_ids)):
+        raise LabelValidationError("select at least two distinct existing boxes")
+    merged = {
+        "object_id": "merge-" + "-".join(sorted(object_ids)),
+        "class_name": target_class,
+        "class_id": CLASS_IDS[target_class],
+        "x1": min(float(b["x1"]) for b in selected),
+        "y1": min(float(b["y1"]) for b in selected),
+        "x2": max(float(b["x2"]) for b in selected),
+        "y2": max(float(b["y2"]) for b in selected),
+        "ignore": any(bool(b["ignore"]) for b in selected),
+        "attributes": sorted({a for b in selected for a in b.get("attributes", [])}),
+        "label_source": "manual",
+        "revision_action": "adjusted",
+        "merged_from": sorted(object_ids),
+    }
+    return [b for b in boxes if b["object_id"] not in set(object_ids)] + [merged]
+
+
+def load_label_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"schema_version": "site_finetune_frame_labels_v1", "frames": {}}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != "site_finetune_frame_labels_v1":
+        raise LabelValidationError("unsupported label file schema")
+    if not isinstance(payload.get("frames"), dict):
+        raise LabelValidationError("frames must be a mapping")
+    return payload
+
+
+def polygon_from_mask(mask_path: Path, radius_px: int) -> np.ndarray:
+    mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+    if mask is None:
+        raise FileNotFoundError(mask_path)
+    original = (mask > 0).astype(np.uint8) * 255
+    if radius_px == 0:
+        return original
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (radius_px * 2 + 1, radius_px * 2 + 1)
+    )
+    return cv2.dilate(original, kernel)

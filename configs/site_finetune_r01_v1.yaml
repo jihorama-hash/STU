@@ -1,0 +1,93 @@
+schema_version: site_finetune_split_v1
+task: TASK-009
+created_date: 2026-11-09
+status: approved_frozen_checkpoint_1
+source:
+  clip_manifest: manifests/clips.yaml
+  fps_numerator: 30000
+  fps_denominator: 1001
+  frame_count_source: ffprobe_nb_frames
+  evaluation_config: configs/evaluation_detection_v2.yaml
+  validation_duration_source: manifests/clips.yaml
+  note: >
+    DJI_0488 usable duration is 119.185733 s from clips.yaml; baseline.json says
+    118.0 s and is not used here. Ranges are zero-based half-open [start, end).
+    Interior time boundaries use ceil(time * 30000/1001); clip ends use ffprobe
+    frame counts. This draft is frozen only after Checkpoint 1 approval.
+analysis_polygon:
+  source_mask_manifest: data/calibration/by_video/manifest.json
+  rule: binary roadway mask dilated per clip
+  radius_px: 200
+  kernel: elliptical, size 2r+1
+  scope: TASK-009 labels and D-1 subset only; not a canonical calibration decision
+  roi_transform: not used
+  new_homography: not calculated
+  status: approved_frozen_checkpoint_1
+clips:
+  DJI_0481:
+    frame_count: 8716
+    ranges: [{split: train_candidate, start: 0, end: 8716}]
+  DJI_0482:
+    frame_count: 8721
+    ranges:
+      - {split: train_candidate, start: 0, end: 3897}
+      - {split: excluded_R01_and_buffer, start: 3897, end: 6294}
+      - {split: train_candidate, start: 6294, end: 8721}
+  DJI_0483:
+    frame_count: 8223
+    ranges:
+      - {split: train_candidate, start: 0, end: 4706}
+      - {split: excluded_unusable_tail, start: 4706, end: 8223}
+  DJI_0484:
+    frame_count: 863
+    ranges: [{split: train_candidate, start: 0, end: 863}]
+  DJI_0485:
+    frame_count: 8716
+    ranges:
+      - {split: train_candidate, start: 0, end: 8417}
+      - {split: excluded_last_10_seconds, start: 8417, end: 8716}
+  DJI_0486:
+    frame_count: 8721
+    ranges: [{split: test_never_read_for_training_or_selection, start: 0, end: 8721}]
+  DJI_0487:
+    frame_count: 8720
+    ranges:
+      - {split: excluded_first_10_seconds, start: 0, end: 300}
+      - {split: train_candidate, start: 300, end: 8421}
+      - {split: excluded_last_10_seconds, start: 8421, end: 8720}
+  DJI_0488:
+    frame_count: 4635
+    ranges:
+      - {split: excluded_first_10_seconds, start: 0, end: 300}
+      - {split: validation_candidate, start: 300, end: 3572}
+      - {split: excluded_unusable_tail, start: 3572, end: 4635}
+totals:
+  train_candidate_frames: 37147
+  train_candidate_seconds: 1239.471567
+  validation_candidate_frames: 3272
+  validation_candidate_seconds: 109.175733
+  test_frames: 8721
+  test_seconds: 290.990700
+  excluded_R01_and_buffer_frames: 2397
+  excluded_R01_and_buffer_seconds: 79.979900
+  all_other_excluded_frames: 5778
+  all_other_excluded_seconds: 192.792600
+  note: Candidate pools are not the final 85/15 selected frames.
+sampling_plan:
+  final_train_images: 85
+  final_validation_images: 15
+  uniform_train_images: 68
+  hard_scene_train_images: 17
+  minimum_uniform_spacing_seconds: 3
+  hard_scene_tags: [tree_shadow, motorcycle_or_bicycle, bus_or_truck, crossing_pedestrian]
+  frame_list: data/training_labels/site_finetune_r01_v1/frame_list.csv
+  selection_method: stratified uniform time sampling over eligible ranges; hard-scene candidates manually selected
+  contact_sheet: outputs/task009/frame_review/hard_proposals.jpg
+  status: approved_frozen_checkpoint_1
+  note: User approved the 68 uniform + 17 hard-scene train frames and 15 validation frames at Checkpoint 1 on 2026-11-09.
+class_head:
+  type: coco_80
+  retained_ids: {person: 0, bicycle: 1, car: 2, motorcycle: 3, bus: 5, truck: 7}
+metrics:
+  primary: {name: D-1 crossing-pedestrian recall, anchors: 446}
+  auxiliary: {name: roadway-mask-inside-foot-anchor recall, anchors: 140}
