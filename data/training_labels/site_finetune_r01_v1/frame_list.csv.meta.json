@@ -1,0 +1,17 @@
+{
+  "code_commit": "156cbc26fa68da79ae8694a0a035b41153e4d68a",
+  "generator": "scripts/diagnostics/47_task009_frame_sampling.py",
+  "generator_sha256": "70ab582b88ec7090e1c75378fc35f75027f559b72a3548f4b98e251819bb7ca4",
+  "split_config": "configs/site_finetune_r01_v1.yaml",
+  "split_config_sha256": "cae810bd5c7dd1a0aac81cc59e9944c2999ece3dcc29712d468515e6d570bda9",
+  "frame_count": 100,
+  "train_uniform_count": 68,
+  "train_hard_scene_count": 17,
+  "validation_count": 15,
+  "test_clip_opened": false,
+  "thumbnails_regenerated": false,
+  "review_status": "approved_frozen_checkpoint_1; user approval 2026-11-09",
+  "coordinate_system": "source_frame_index",
+  "unit": "frames",
+  "output_sha256": "a49be6b8b03fc01d30cb424db8241c3a11d53d058012c200a821de223733d9df"
+}

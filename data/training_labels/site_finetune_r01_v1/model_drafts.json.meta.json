@@ -1,0 +1,15 @@
+{
+  "generated_utc": "2026-11-09T05:59:55.127933+00:00",
+  "code_commit": "156cbc26fa68da79ae8694a0a035b41153e4d68a",
+  "frame_list": "data/training_labels/site_finetune_r01_v1/frame_list.csv",
+  "frame_list_sha256": "a49be6b8b03fc01d30cb424db8241c3a11d53d058012c200a821de223733d9df",
+  "weights_sha256": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95",
+  "script_sha256": "94ef2bdc0478032a579dba7b7d741cc641d06ae6641197fde91e46213125aeed",
+  "output_sha256": "9f756c6076ab15d50637380549732e03936214d5cb65d09ccdc3baf23f60a7db",
+  "coordinate_system": "source_pixel",
+  "unit": "pixels",
+  "review_status": "unreviewed_model_draft",
+  "frame_count": 100,
+  "box_count": 1722,
+  "checkpoint_1_approval": "2026-11-09; approved frame identities unchanged; status metadata updated"
+}
