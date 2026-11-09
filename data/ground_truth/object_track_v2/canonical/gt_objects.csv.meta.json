@@ -1,0 +1,21 @@
+{
+  "created_at_utc": "2026-11-09T02:28:30Z",
+  "code_commit": "30922e2504d7e02d26ea69f922fb15885f35ab5e",
+  "code_worktree_diff_sha256": "ab4d7e208da2025eb6fa5ea09b5fc74f379983f7ef01656b1ab195b46c9dc953",
+  "code_sha256": "7176955221d428eb40019f1a2b59b46ef8c204b16f75864d34409fe962595337",
+  "input_sha256": {
+    "v1_manifest": "d9d3139a918c42f93b26f52a8967e7b1bcd923cedf6cf89f8998f67169affc3b",
+    "v1_observations": "2cd303f453919d0021797ae528fac5f22661ab851c9116b884bd642e4fb31658",
+    "v2_work_observations": "45bc6179abc9a3ad2a6b66070ec9332a1558efa896fc1f0955ed20580ade7559",
+    "v2_work_skips": "88730bf5ec2482f8edf3be2595b7f1a3dbeb607cfb85472e5e3294992c023a24"
+  },
+  "files": {
+    "gt_objects.csv": "a444cdb63db2bcf2d52c34d17a9355b5ee17bc0603d450267a9bd00f666cc6c7",
+    "gt_visibility_intervals.csv": "9fdf22524f0d39ba256968fcac298c7706ed643dbf40318ecf28a5aa3d0827a9",
+    "gt_observations.csv": "45bc6179abc9a3ad2a6b66070ec9332a1558efa896fc1f0955ed20580ade7559",
+    "gt_observation_skips.csv": "88730bf5ec2482f8edf3be2595b7f1a3dbeb607cfb85472e5e3294992c023a24"
+  },
+  "coordinate_system": "source_pixel",
+  "unit": "px",
+  "review_status": "draft"
+}
