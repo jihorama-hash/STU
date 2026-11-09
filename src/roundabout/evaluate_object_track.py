@@ -161,6 +161,16 @@ def select_complete_frames(
     ]
 
 
+def eligible_observations(
+    observations: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """Exclude explicitly ignored GT boxes from trajectory score denominators."""
+    return [
+        row for row in observations
+        if str(row.get("ignore", "false")).lower() != "true"
+    ]
+
+
 def _load_inputs(config_path: Path) -> dict[str, object]:
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     if not isinstance(config, dict):
@@ -450,18 +460,56 @@ def evaluate_stage(
     auto_rows: list[dict[str, object]],
     complete_frames: list[int],
     thresholds: list[float],
+    ignore_ground_truth: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
-    auto_by_frame: dict[int, list[dict[str, object]]] = defaultdict(list)
-    for row in auto_rows:
-        auto_by_frame[int(row["frame_index"])].append(row)
     gt_by_frame: dict[int, list[dict[str, object]]] = defaultdict(list)
     for row in observations:
         gt_by_frame[int(row["frame_index"])].append({
             **row, "box": tuple(float(row[key]) for key in ("x1", "y1", "x2", "y2")),
         })
+    ignore_by_frame: dict[int, list[dict[str, object]]] = defaultdict(list)
+    for row in ignore_ground_truth or []:
+        ignore_by_frame[int(row["frame_index"])].append({
+            **row, "box": tuple(float(value) for value in row["box"]),
+        })
     output: dict[str, object] = {"thresholds": {}, "per_object": {}, "associations": {}}
     for threshold in thresholds:
         key = f"iou_{threshold:.1f}"
+        auto_by_frame: dict[int, list[dict[str, object]]] = defaultdict(list)
+        original_by_frame: dict[int, list[dict[str, object]]] = defaultdict(list)
+        for row in auto_rows:
+            original_by_frame[int(row["frame_index"])].append(row)
+        for frame, auto_frame in original_by_frame.items():
+            gt_frame = gt_by_frame.get(frame, [])
+            matches = match_frame(gt_frame, auto_frame, threshold)
+            matched_auto = {ai for _, ai, _ in matches}
+            for index, row in enumerate(auto_frame):
+                if index in matched_auto:
+                    auto_by_frame[frame].append(row)
+                    continue
+                raw_box = row["box"] if "box" in row else tuple(
+                    row[name] for name in ("x1", "y1", "x2", "y2")
+                )
+                box = tuple(float(value) for value in raw_box)
+                width = max(0.0, box[2] - box[0])
+                height = max(0.0, box[3] - box[1])
+                area = width * height
+                ignored = False
+                if area:
+                    for ignore in ignore_by_frame.get(frame, []):
+                        if not class_compatible(
+                            str(ignore["object_class"]), str(row["object_class"])
+                        ):
+                            continue
+                        ib = ignore["box"]
+                        intersection = max(0.0, min(box[2], ib[2]) - max(box[0], ib[0])) * max(
+                            0.0, min(box[3], ib[3]) - max(box[1], ib[1])
+                        )
+                        if intersection / area >= threshold:
+                            ignored = True
+                            break
+                if not ignored:
+                    auto_by_frame[frame].append(row)
         objects, object_summary, links = _object_metrics(observations, auto_by_frame, threshold)
         frames = _frame_metrics(
             complete_frames, gt_by_frame, auto_by_frame, threshold
@@ -491,11 +539,25 @@ def run(config_path: Path, root: Path) -> dict[str, object]:
         root / str(gt_config["directory"]) / str(gt_config["skip_file"])
     )
     start, end = int(gt_config["start_frame_index"]), int(gt_config["end_frame_index"])
-    observations = [
+    all_observations = [
         row for row in gt["observations"]
         if start <= int(row["frame_index"]) <= end
         and row["in_scope"].lower() == "true"
     ]
+    observations = eligible_observations(all_observations)
+    ignore_ground_truth = [
+        {
+            **row,
+            "frame_index": int(row["frame_index"]),
+            "box": tuple(float(row[key]) for key in ("x1", "y1", "x2", "y2")),
+        }
+        for row in all_observations
+        if str(row.get("ignore", "false")).lower() == "true"
+    ]
+    ignored_anchor_keys = {
+        (str(row["gt_object_id"]), int(row["frame_index"]))
+        for row in ignore_ground_truth
+    }
     visibility = gt["visibility_intervals"]
     eligible_by_frame: dict[int, set[str]] = defaultdict(set)
     for frame in range(start, end + 1, int(gt_config["anchor_frame_step"])):
@@ -504,6 +566,7 @@ def run(config_path: Path, root: Path) -> dict[str, object]:
                 int(row["start_frame_index"]) <= frame <= int(row["end_frame_index"])
                 and row["in_scope"].lower() == "true"
                 and row["denominator_eligible"].lower() == "true"
+                and (str(row["gt_object_id"]), frame) not in ignored_anchor_keys
             ):
                 eligible_by_frame[frame].add(row["gt_object_id"])
     observed_by_frame: dict[int, set[str]] = defaultdict(set)
@@ -514,7 +577,7 @@ def run(config_path: Path, root: Path) -> dict[str, object]:
     frame_step = int(run_config["frame_step"])
     sampled_frames = set(range(0, int(manifest["video"]["source_frame_count"]), frame_step))
     missing_anchor_frames = sorted(
-        set(int(row["frame_index"]) for row in observations) - sampled_frames
+        set(int(row["frame_index"]) for row in all_observations) - sampled_frames
     )
     if missing_anchor_frames:
         raise EvaluationError(f"GT anchors absent from automatic frame step: {missing_anchor_frames}")
@@ -537,6 +600,11 @@ def run(config_path: Path, root: Path) -> dict[str, object]:
         "excluded_reviewed_skips": skip_rows,
         "stages": {},
     }
+    if len(all_observations) != len(observations):
+        metrics["denominator_observation_count"] = len(observations)
+        metrics["excluded_ignore_observation_count"] = (
+            len(all_observations) - len(observations)
+        )
     per_object_csv = []
     associations_csv = []
     audit_csv = []
@@ -546,7 +614,9 @@ def run(config_path: Path, root: Path) -> dict[str, object]:
     for stage in STAGES:
         path = stage_paths[stage]
         rows = _track_rows(path, start, end)
-        data = evaluate_stage(observations, rows, complete_frames, thresholds)
+        data = evaluate_stage(
+            observations, rows, complete_frames, thresholds, ignore_ground_truth
+        )
         stage_data[stage] = data
         metrics["stages"][stage] = data["thresholds"]
         artifact_hash = sha256(path)

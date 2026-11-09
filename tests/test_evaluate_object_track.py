@@ -9,6 +9,7 @@ from roundabout.evaluate_object_track import (
     count_id_switches,
     coverage_status,
     evaluate_stage,
+    eligible_observations,
     fragmentation_count,
     match_frame,
     maximum_missing_anchors,
@@ -35,6 +36,28 @@ def auto(track_id="1", frame=0, box=(0, 0, 10, 10), object_class="person"):
 
 
 class ObjectTrackEvaluationTest(unittest.TestCase):
+    def test_ignore_observations_are_excluded_from_score_denominator(self):
+        rows = [
+            {"gt_object_id": "P001", "ignore": "false"},
+            {"gt_object_id": "P002", "ignore": "true"},
+            {"gt_object_id": "P003"},
+        ]
+        self.assertEqual(
+            [row["gt_object_id"] for row in eligible_observations(rows)],
+            ["P001", "P003"],
+        )
+
+    def test_unmatched_track_box_overlapping_ignore_area_is_not_counted_as_fp(self):
+        ignored = [{
+            "frame_index": 0, "object_class": "person", "box": (20, 0, 30, 10),
+        }]
+        result = evaluate_stage(
+            [gt(box=(0, 0, 10, 10))],
+            [auto(box=(20, 0, 30, 10))],
+            [0], [0.5], ignored,
+        )
+        self.assertEqual(result["thresholds"]["iou_0.5"]["frames"]["fp"], 0)
+
     def test_iou_and_exact_threshold_match(self):
         self.assertAlmostEqual(box_iou((0, 0, 10, 10), (0, 0, 10, 10)), 1.0)
         # Intersection=50, union=100.

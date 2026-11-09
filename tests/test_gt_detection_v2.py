@@ -3,8 +3,10 @@ from __future__ import annotations
 import csv
 import hashlib
 import importlib.util
+import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -74,6 +76,68 @@ class DetectionGtV2Test(unittest.TestCase):
         for name, digest in expected.items():
             path = ROOT / "data/ground_truth/object_track_v1" / name
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+
+    def test_revision_work_path_targets_v2_review_directory(self) -> None:
+        self.assertEqual(revision.WORK, revision.V2 / "review")
+
+    def test_build_canonical_marks_single_reviewer_data_draft_and_hashes_skips(self) -> None:
+        v1 = self.root / "v1"
+        v2 = self.root / "v2"
+        work = v2 / "review"
+        work.mkdir(parents=True)
+        v1.mkdir()
+        manifest = {
+            "template": False,
+            "schema_version": "object_track_gt_v1",
+            "gt_dataset_id": "v1",
+            "dataset_status": "draft",
+            "frozen_version": "v1",
+            "scope": {"object_classes": ["person"]},
+            "annotation": {
+                "protocol_path": "old.md",
+                "created_at_utc": "2026-01-01T00:00:00Z",
+                "updated_at_utc": "2026-01-01T00:00:00Z",
+            },
+            "files": {},
+            "frozen_files": {},
+        }
+        (v1 / "ground_truth_manifest.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        for name in ("gt_objects.csv", "gt_visibility_intervals.csv", "gt_observations.csv"):
+            (v1 / name).write_text("schema_version,gt_dataset_id\nv1,v1\n", encoding="utf-8")
+        observations = [
+            self.row(frame_index=str(4196 + index * 2)) for index in range(970)
+        ]
+        with (work / "gt_observations_R01_v2.csv").open(
+            "w", encoding="utf-8", newline=""
+        ) as stream:
+            writer = csv.DictWriter(
+                stream, fieldnames=revision.OBS_HEADERS, lineterminator="\n"
+            )
+            writer.writeheader()
+            writer.writerows(observations)
+        with (work / "gt_observation_skips_R01_v2.csv").open(
+            "w", encoding="utf-8", newline=""
+        ) as stream:
+            writer = csv.DictWriter(
+                stream, fieldnames=revision.SKIP_HEADERS, lineterminator="\n"
+            )
+            writer.writeheader()
+        with patch.multiple(revision, V1=v1, V2=v2, WORK=work):
+            hashes = revision.build_canonical(observations, [])
+
+        canonical = v2 / "canonical"
+        built_manifest = json.loads(
+            (canonical / "ground_truth_manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(built_manifest["dataset_status"], "draft")
+        self.assertEqual(built_manifest["frozen_version"], "v2")
+        self.assertEqual(built_manifest["frozen_files"]["observation_skips"]["row_count"], 0)
+        self.assertEqual(
+            built_manifest["frozen_files"]["observation_skips"]["sha256"],
+            hashes["gt_observation_skips.csv"],
+        )
 
 
 if __name__ == "__main__":

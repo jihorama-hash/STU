@@ -5,13 +5,14 @@ import argparse
 import csv
 import hashlib
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 V1 = ROOT / "data/ground_truth/object_track_v1"
-WORK = V1 / "review"
 V2 = ROOT / "data/ground_truth/object_track_v2"
+WORK = V2 / "review"
 DATASET_ID = "DJI_0482_R01_detection_box_v2"
 OBS_HEADERS = tuple(next(csv.reader((V1 / "gt_observations.template.csv").open(encoding="utf-8-sig")))) + (
     "ignore", "attributes", "label_source", "revision_action"
@@ -94,6 +95,8 @@ def build_canonical(observations: list[dict[str, str]], skips: list[dict[str, st
     if len(observations) + len(skips) != 970:
         raise ValueError(f"expected all 970 anchors resolved; got {len(observations) + len(skips)}")
     out = V2 / "canonical"
+    if out.exists() and (out / "ground_truth_manifest.json").exists():
+        raise FileExistsError(f"Refusing to overwrite existing canonical GT v2: {out}")
     out.mkdir(parents=True, exist_ok=True)
     source_manifest = json.loads((V1 / "ground_truth_manifest.json").read_text(encoding="utf-8"))
     files: dict[str, Path] = {}
@@ -112,33 +115,44 @@ def build_canonical(observations: list[dict[str, str]], skips: list[dict[str, st
         normalized = []
         for source in rows:
             row = dict(source)
-            row["schema_version"] = "detection_box_gt_v2"
-            row["gt_dataset_id"] = DATASET_ID
+            if name == "gt_observations.csv":
+                row["schema_version"] = "detection_box_gt_v2"
+                row["gt_dataset_id"] = DATASET_ID
             normalized.append(row)
         target = out / name
         _write_csv(target, headers, normalized)
         files[name] = target
     manifest = dict(source_manifest)
     manifest.update({"schema_version": "detection_box_gt_v2", "gt_dataset_id": DATASET_ID,
-                     "dataset_status": "frozen", "frozen_version": "v2"})
+                     "dataset_status": "draft", "frozen_version": "v2"})
     manifest["scope"]["object_classes"] = ["person", "bicycle", "car", "motorcycle", "bus", "truck"]
     manifest["files"] = {**manifest["files"], "objects": "canonical/gt_objects.csv",
                           "visibility_intervals": "canonical/gt_visibility_intervals.csv",
                           "observations": "canonical/gt_observations.csv"}
     manifest["files"]["observation_skips"] = "canonical/gt_observation_skips.csv"
     manifest["annotation"]["protocol_path"] = "docs/validation/DETECTION_LABEL_RULES.md"
+    manifest["annotation"]["updated_at_utc"] = datetime.now(timezone.utc).replace(
+        microsecond=0
+    ).isoformat().replace("+00:00", "Z")
     manifest["frozen_files"] = {
         "objects": {"path": "canonical/gt_objects.csv", "row_count": sum(1 for _ in csv.DictReader((out / "gt_objects.csv").open(encoding="utf-8"))), "sha256": sha256(out / "gt_objects.csv")},
         "visibility_intervals": {"path": "canonical/gt_visibility_intervals.csv", "row_count": sum(1 for _ in csv.DictReader((out / "gt_visibility_intervals.csv").open(encoding="utf-8"))), "sha256": sha256(out / "gt_visibility_intervals.csv")},
         "observations": {"path": "canonical/gt_observations.csv", "row_count": len(observations), "sha256": sha256(out / "gt_observations.csv")},
+        "observation_skips": {"path": "canonical/gt_observation_skips.csv", "row_count": len(skips), "sha256": sha256(out / "gt_observation_skips.csv")},
     }
     manifest_path = out / "ground_truth_manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    diff = subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=ROOT)
     meta = {"created_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-            "code_commit": "working-tree", "input_sha256": {
+            "code_commit": subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+            ).strip(),
+            "code_worktree_diff_sha256": hashlib.sha256(diff).hexdigest() if diff else None,
+            "code_sha256": sha256(Path(__file__)), "input_sha256": {
                 "v1_manifest": sha256(V1 / "ground_truth_manifest.json"),
                 "v1_observations": sha256(V1 / "gt_observations.csv"),
-                "v2_work_observations": sha256(WORK / "gt_observations_R01_v2.csv")},
+                "v2_work_observations": sha256(WORK / "gt_observations_R01_v2.csv"),
+                "v2_work_skips": sha256(WORK / "gt_observation_skips_R01_v2.csv")},
             "files": {path.name: sha256(path) for path in files.values()},
             "coordinate_system": "source_pixel", "unit": "px", "review_status": "draft"}
     for path in files.values():

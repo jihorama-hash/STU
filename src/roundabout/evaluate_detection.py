@@ -99,6 +99,11 @@ def complete_detection_frames(
     """Use the trajectory evaluator's definition of complete GT frames."""
     eligible: dict[int, set[str]] = defaultdict(set)
     observed: dict[int, set[str]] = defaultdict(set)
+    ignored_anchors = {
+        (str(row["gt_object_id"]), int(row["frame_index"]))
+        for row in observation_rows
+        if str(row.get("ignore", "false")).lower() == "true"
+    }
     for row in visibility_rows:
         if str(row.get("in_scope", "true")).lower() != "true":
             continue
@@ -107,10 +112,15 @@ def complete_detection_frames(
         start = int(row["start_frame_index"])
         end = int(row["end_frame_index"])
         for frame in grid_frames:
-            if start <= frame <= end:
+            if start <= frame <= end and (
+                str(row["gt_object_id"]), frame
+            ) not in ignored_anchors:
                 eligible[frame].add(str(row["gt_object_id"]))
     for row in observation_rows:
-        if str(row.get("in_scope", "true")).lower() == "true":
+        if (
+            str(row.get("in_scope", "true")).lower() == "true"
+            and str(row.get("ignore", "false")).lower() != "true"
+        ):
             observed[int(row["frame_index"])].add(str(row["gt_object_id"]))
     return select_complete_frames(grid_frames, eligible, observed)
 

@@ -1,0 +1,90 @@
+schema_version: object_track_evaluation_v2_rescore
+evaluation_run_id: r01_gtv2_scoring_20261109_ignorefix
+evidence:
+  mot16: https://arxiv.org/abs/1603.00831
+  hota: https://arxiv.org/abs/2009.07736
+  user_decisions_date: 2026-11-09
+  ground_truth_manifest: data/ground_truth/object_track_v2/canonical/ground_truth_manifest.json
+  execution_lineage: outputs/evaluation_runs/r01_baseline_yolo11m_full_20261103_02/run_lineage.json
+evidence_basis:
+  evaluation_range_and_frame_step:
+    grade: C
+    source: TASK-006 operating rules A and v2 manifest
+  denominator_and_skips:
+    grade: C
+    source: TASK-008 operating rule E and 2026-11-09 approved v2 skip decision; v2 observations excluding ignore=true
+  iou_thresholds_and_assignment:
+    grade: C
+    source: TASK-006 matching rules; unchanged for v2 rescore
+  complete_frames_only:
+    grade: C
+    source: TASK-006 operating rule C; ignore boxes mark observed objects but are excluded from score denominators
+  class_compatibility:
+    grade: C
+    source: TASK-006 operating rule D
+  mt_pt_ml_thresholds:
+    grade: C
+    source: TASK-006 decision 2; MOT16 definition, https://arxiv.org/abs/1603.00831
+  coverage_status_thresholds:
+    grade: C
+    source: TASK-006 operating rule E
+  hota_alpha_grid:
+    grade: A
+    source: HOTA paper, https://arxiv.org/abs/2009.07736
+  maximum_gap:
+    grade: C
+    source: TASK-006 operating rule E; report only
+ground_truth:
+  directory: data/ground_truth/object_track_v2/canonical
+  video_id: DJI_0482
+  start_frame_index: 4196
+  end_frame_index: 5994
+  anchor_frame_step: 30
+  denominator: 854 eligible observations after excluding 110 ignore boxes; 6 reviewed skips excluded
+  skip_file: gt_observation_skips.csv
+  frozen_files:
+    objects: gt_objects.csv
+    visibility_intervals: gt_visibility_intervals.csv
+    observations: gt_observations.csv
+automatic_run:
+  evaluation_run_id: r01_baseline_yolo11m_full_20261103_02
+  expected_git_commit: e9d7c75
+  frame_step: 2
+  directory: outputs/evaluation_runs/r01_baseline_yolo11m_full_20261103_02
+  stages:
+    raw_tracker: raw_tracker/tracks.csv
+    filtered: filtered/filtered_tracks.csv
+    merged: merged/filtered_tracks_merged.csv
+matching:
+  timestamp_tolerance_frames: 0
+  frame_metrics: complete_frames_only
+  assignment: one_to_one_hungarian_per_frame
+  class_agnostic: true
+  iou_thresholds:
+    official: 0.5
+    sensitivity: 0.3
+  class_compatibility:
+    person: [person]
+    car: [car, bus, truck]
+    motorcycle: [motorcycle]
+    other_classes: mismatch
+trajectory:
+  mostly_tracked_coverage_minimum: 0.8
+  mostly_lost_coverage_strict_maximum: 0.2
+  complete_single_track_coverage_minimum: 0.8
+  coverage_status:
+    complete: one_auto_id_covers_at_least_threshold
+    partial: at_least_one_match_but_no_complete_auto_id
+    missed: no_matches
+  maximum_consecutive_missing_anchors: report_only
+  anchor_resolution_seconds: 30 / source_fps
+hota:
+  alpha_values: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45,
+                 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+  report_alpha_mean: true
+  report_alpha_0_5: true
+  implementation: vendored upstream HOTA with minimal NumPy 2 compatibility changes
+  source: src/roundabout/third_party/hota.py
+  upstream_parity_reference:
+    repository: https://github.com/JonathonLuiten/TrackEval
+    commit: 12c8791b303e0a0b50f753af204249e622d0281a
