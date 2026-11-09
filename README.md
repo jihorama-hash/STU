@@ -106,7 +106,7 @@ raw detections
 
 ## 현재 상태
 
-2026-11-04 기준, R01 객체·가시성·위치 GT v1 파일 스냅샷과 SHA-256을 기록했고 TASK-006 기준선 및 TASK-007 검출기 단독 평가를 완료했다. GT는 단일 검토자 자료이므로 데이터셋 및 행별 상태가 `draft`이며, 복사 박스 후보 3개는 육안 미확인이다.
+2026-11-09 기준, R01 GT v1과 TASK-006/007 기준선을 보존한 채 TASK-008 GT v2 재검토 파일을 검증하고 canonical snapshot 및 SHA-256을 생성했다. v2는 964 observations, 6 skips, 110 ignore, 평가 분모 854이며 단일 검토자이므로 `draft`다. 기존 TASK-007 detections와 TASK-006 `_02` tracker 결과를 GPU 재실행 없이 재채점했고 v1 회귀 검사를 통과했다. TASK-008은 완료했다. 30-anchor 일관성 점검은 2026-11-09 사용자 결정으로 보류했으며, GT v2의 검토자 내 일관성은 미측정이다.
 
 | 기능 | 상태 |
 |---|---|
@@ -120,6 +120,7 @@ raw detections
 | 설치 의존성 | `pyproject.toml`의 `analysis`, `detection`, `dev`, `demo`, `evaluation` extra로 관리. PyTorch는 GPU 드라이버에 맞춰 별도 선설치 |
 | R01 baseline trajectory scoring | TASK-006 완료. `_02` 실행을 `raw_tracker`·`filtered`·`merged` 3단계 × IoU 0.5/0.3으로 채점했고 결과 초안을 `docs/validation/R01_BASELINE_SCORING_RESULT.md`에 기록했다. 자동 association 잠정값이며 사람 adjudication과 C003 차량 제외 구역 점검은 후속 작업이다. |
 | R01 detection-only evaluation | TASK-007 완료. A 실행을 236개 GT/grid-union 프레임으로 수행하고 1,488개 tracker 박스를 IoU≥.99로 재현성 대조했다. B와 도로 영역 층화 평가는 보류 결정에 따라 생략했다. 결과는 `docs/validation/R01_DETECTION_ONLY_RESULT.md`에 기록했다. |
+| R01 GT v2 | TASK-008 완료. canonical과 v1/v2 비교 및 회귀 결과는 `docs/validation/R01_GTV2_RESCORING_RESULT.md`; GT v1, tag, manifest 및 visibility 정본은 유지했다. 30-anchor 일관성 점검은 사용자 결정(2026-11-09)으로 보류했다. |
 | 현장 미세조정, 사람 보정 도구 | 미구현 |
 | 횡단사건, 상호작용, A0/A1/B0/B1/B2 분류 | 미구현 |
 | 접근로별 미터 환산, `provisional_dpd` | 미구현 |

@@ -493,6 +493,11 @@ adjudicator, 사람 집단·탑승자·이륜차 경계 사례 처리. `pending`
 
 `docs/validation/DETECTION_LABEL_RULES.md`에 따른 검출 박스 v2는 `schema_version=detection_box_gt_v2`를 사용한다. v1 정의와 파일은 그대로 유지한다.
 
+R01 v2는 단일 검토자 스냅샷이므로 `frozen_version=v2`로 파일 묶음을 식별하더라도
+`dataset_status=draft`를 유지한다. v2 manifest에는 `files.observation_skips` 경로와
+`frozen_files.observation_skips`의 행 수·SHA-256을 기록한다. 이 항목은 검토된 skip 목록이며
+`gt_observations.csv` 분모에는 포함되지 않는다.
+
 | 필드 | 형식 | 필수 | 허용값 | 설명 |
 |---|---|---|---|---|
 | `ignore` | boolean | 예 | `true`, `false` | 위치 평가 분모에서 제외할 무시영역 표시 |

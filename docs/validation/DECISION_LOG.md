@@ -1,5 +1,16 @@
 # 의사결정 기록
 
+## 2026-11-09 — TASK-008 GT v2 skip 예외 및 재채점
+
+- TASK-008 운영 규칙 C의 skip 10건 v1 유지 규칙에 대한 예외로, 사용자는 R01 v2 재검토 skip 결과를 그대로 채택했다. v1 skip 중 M002@5876, P004@4886, P019@5126, P027@5890, P026@5846은 v2에서도 skip으로 두고 사유를 `occluded_more_than_marked`로 기록한다.
+- v1 skip P005@5966, P007@4522, P017@5200, P018@5216, P019@5166은 v2에서 `ignore=true`, `revision_action=new` 관측으로 채택한다. 반대로 P027@5876은 v1 관측에서 v2 skip(`occluded_more_than_marked`)으로 바꾼다. P020@5454는 v1 관측에서 v2 ignore 관측(`redrawn`)으로 둔다.
+- 객체 목록과 visibility 정본은 이 결정으로 수정하지 않는다.
+- v2 기대 action count는 사용자 확인에 따라 kept 82, adjusted 162, redrawn 715, new 5다. 2026-11-09 10:30–10:31 KST의 C005@4890 및 P018@4734 재그리기로 인한 adjusted→redrawn 이동은 정상 사용자 수정이다.
+- 작업 파일은 970 anchor(964 observations, 6 skips, missing 0), ignore 110, 평가 분모 854다. v2 canonical은 새 경로·새 데이터셋 ID로 생성하고 manifest/파일 해시를 기록했다. 단일 검토자 스냅샷이므로 `dataset_status=draft`다.
+- 기존 TASK-007 A detections와 TASK-006 `_02` tracker 결과를 GPU 재실행 없이 v2로 CPU 재채점한다. ignore 박스는 분모에서 제외하며, 호환되는 ignore 영역과 IoA가 해당 IoU 임계 이상 겹치는 미매칭 자동 박스는 FP에서 제외한다. trajectory score complete-frame도 ignore 관측 anchor를 제외해 계산한다.
+- v1 대 v2 비교는 분모(960 대 854)와 complete-frame 집합(54 대 56)이 다르며, v2는 110 ignore를 평가 대상에서 빼므로 성능 차이를 GT 라벨 변경만의 효과로 해석하지 않는다.
+- 2026-11-09 사용자 결정: 30-anchor 일관성 점검은 보류한다. GT v2는 단일 검토자 자료로 검토자 내 일관성 미측정이다.
+
 ## 2026-11-05 — 검출 박스 라벨 규칙 및 R01 GT v2
 
 - 승인된 박스 규칙은 `docs/validation/DETECTION_LABEL_RULES.md`를 따른다. D1 클래스는 COCO 기준 `person`, `bicycle`, `car`, `motorcycle`, `bus`, `truck`이다. 버스는 영상 후반부에 나타난다. 밴은 `car`, 픽업·화물차·탑차는 `truck`으로 분류한다.

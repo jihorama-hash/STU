@@ -1,6 +1,6 @@
 # TASK-008: 라벨 규칙 도입과 R01 GT v2 박스 재검토
 
-- 상태: ready
+- 상태: done (30-anchor 일관성 점검 보류: 사용자 결정 2026-11-09)
 - 작성: Aside / 승인: 사용자 / 작성일: 2026-11-05
 - 브랜치: task/008-gt-v2-label-rules
 
@@ -103,7 +103,8 @@
 
 ## 완료 보고(Codex 작성)
 
-- 변경 파일:
-- 실행한 명령과 결과:
-- 바뀐 설정과 영향 단계:
-- 한계와 미해결:
+- 변경 파일: `scripts/ground_truth/revise_detection_gt_v2.py`, `src/roundabout/evaluate_detection.py`, `src/roundabout/evaluate_object_track.py`, `scripts/diagnostics/43_score_r01_detection_v2.py`, `configs/evaluation_object_track_v2.yaml`, `configs/evaluation_object_track_v2_ignorefix.yaml`, `data/ground_truth/object_track_v2/canonical/`(manifest·CSV·meta), `data/ground_truth/object_track_v1/DATA_DICTIONARY.md`(v2 스키마 설명만), `tests/test_gt_detection_v2.py`, `tests/test_evaluate_object_track.py`, `docs/validation/DECISION_LOG.md`, `docs/validation/R01_GTV2_RESCORING_RESULT.md`, `README.md`, 이 지시문. `docs/worklog/`는 열거나 수정하지 않았다.
+- 실행한 명령과 결과: 작업 validator와 viewer validator 통과(anchors=970, observations=964, skips=6, missing=0; ignore=110, 분모=854). 기존 TASK-007 detections와 TASK-006 `_02` tracker로 v2를 CPU 재채점했다. v1 regression도 현재 코드로 재실행해 TASK-006 metrics JSON(run ID 정규화), TASK-007 summary JSON, P/R CSV 16행, unmatched CSV 301건이 모두 일치함을 확인했다. `.venv/bin/pytest`: 111 passed.
+- 바뀐 설정과 영향 단계: 새로운 v2 평가 YAML에서 TASK-006/007 matching, confidence와 IoU 기준을 그대로 사용하고 새 출력 ID를 적용했다. v2 ignore를 평가 분모 및 complete-frame 대상에서 제외하고, 호환되는 ignore box와 임계 IoA 이상 겹치는 미매칭 자동 box를 FP에서 제외하도록 평가기만 보완했다. 검출·추적·필터 설정은 바꾸지 않았다.
+- 결과: v1/v2와 원인 분해(a v1 GT, b v2 ignore 포함, c 정식 v2), action/box area/foot effect 및 rider 민감도는 `docs/validation/R01_GTV2_RESCORING_RESULT.md`에 기록했다. visible 구간 안 skip P004@4886도 경계 재확인 후보에 추가했다.
+- 한계와 미해결: 단일 검토자 `draft`; 자동 association 및 precision은 사람 adjudication 전 잠정값. v1/v2는 분모·complete-frame 구성도 다르므로 점수 차이를 GT 편집만의 인과효과로 해석하지 않는다. **30-anchor 일관성 점검 보류(사용자 결정 2026-11-09), GT v2는 단일 검토자 자료로 검토자 내 일관성 미측정**.
