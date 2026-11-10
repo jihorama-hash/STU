@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import copy
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,13 +13,67 @@ from roundabout.site_finetune_labels import (
     assert_frame_allowed,
     load_frame_whitelist,
     mask_outside_polygon,
+    mark_frame_reviewed,
     merge_boxes,
+    next_unique_object_id,
+    reassign_duplicate_object_ids,
+    suppress_duplicate_drafts,
     validate_box_in_polygon,
     validate_label_record,
 )
 
 
 class SiteFinetuneLabelsTestCase(unittest.TestCase):
+    def test_duplicate_object_ids_are_reassigned_without_changing_box_data(self) -> None:
+        boxes = [
+            {"object_id": "DJI_0481_273_10", "x1": 1, "y1": 2, "x2": 9,
+             "y2": 12, "class_name": "person", "attributes": ["pm"]},
+            {"object_id": "DJI_0481_273_10", "x1": 11, "y1": 12, "x2": 19,
+             "y2": 22, "class_name": "car", "attributes": []},
+            {"object_id": "DJI_0481_273_09", "x1": 21, "y1": 22, "x2": 29,
+             "y2": 32, "class_name": "person", "attributes": []},
+            {"object_id": "DJI_0481_273_09", "x1": 31, "y1": 32, "x2": 39,
+             "y2": 42, "class_name": "person", "attributes": []},
+        ]
+        before = copy.deepcopy(boxes)
+        changed = reassign_duplicate_object_ids(boxes, "DJI_0481", 273)
+        self.assertEqual(changed, 2)
+        self.assertEqual(len({box["object_id"] for box in boxes}), len(boxes))
+        self.assertEqual([box["object_id"] for box in boxes[:1]],
+                         [before[0]["object_id"]])
+        self.assertEqual(next_unique_object_id(boxes, "DJI_0481", 273),
+                         "DJI_0481_273_13")
+        for old, new in zip(before, boxes):
+            old.pop("object_id")
+            new.pop("object_id")
+            self.assertEqual(new, old)
+
+    def test_suppresses_class_agnostic_draft_duplicates_by_confidence(self) -> None:
+        boxes = [
+            {"object_id": "bicycle", "class_name": "bicycle", "label_source": "model_draft",
+             "confidence": 0.4, "x1": 10, "y1": 10, "x2": 110, "y2": 110},
+            {"object_id": "car", "class_name": "car", "label_source": "model_draft",
+             "confidence": 0.8, "x1": 11, "y1": 11, "x2": 111, "y2": 111},
+            {"object_id": "manual", "class_name": "person", "label_source": "manual",
+             "confidence": 0.1, "x1": 10, "y1": 10, "x2": 110, "y2": 110},
+        ]
+        kept, suppressed = suppress_duplicate_drafts(boxes, 0.9)
+        self.assertEqual([box["object_id"] for box in kept], ["car", "manual"])
+        self.assertEqual([box["object_id"] for box in suppressed], ["bicycle"])
+
+    def test_review_completion_keeps_remaining_drafts_and_records_timestamp(self) -> None:
+        draft = {"object_id": "draft", "label_source": "model_draft",
+                 "revision_action": "new", "confidence": 0.22}
+        already_manual = {"object_id": "manual", "label_source": "manual",
+                          "revision_action": "adjusted"}
+        frame = {"objects": [draft, already_manual]}
+        mark_frame_reviewed(frame, "2026-11-10T09:30:00+09:00")
+        self.assertEqual(frame["reviewed"], True)
+        self.assertEqual(frame["reviewed_at"], "2026-11-10T09:30:00+09:00")
+        self.assertEqual((draft["label_source"], draft["revision_action"]), ("manual", "kept"))
+        self.assertEqual((already_manual["label_source"], already_manual["revision_action"]),
+                         ("manual", "adjusted"))
+
     def test_test_and_excluded_frames_cannot_enter_whitelist(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "frames.csv"

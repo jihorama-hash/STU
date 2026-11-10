@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,91 @@ ALLOWED_ACTIONS = {"kept", "adjusted", "redrawn", "new"}
 
 class LabelValidationError(ValueError):
     """Raised when a frame or label violates the training-label contract."""
+
+
+def next_unique_object_id(boxes: list[dict[str, Any]], clip_id: str,
+                         frame_index: int) -> str:
+    """Return an unused frame-local ID for a newly drawn box."""
+    prefix = f"{clip_id}_{frame_index}_"
+    used = {str(box.get("object_id", "")) for box in boxes}
+    suffixes = [
+        int(match.group(1)) for object_id in used
+        if (match := re.fullmatch(re.escape(prefix) + r"(\d+)", object_id))
+    ]
+    number = max(suffixes, default=0) + 1
+    candidate = f"{prefix}{number:02d}"
+    while candidate in used:
+        number += 1
+        candidate = f"{prefix}{number:02d}"
+    return candidate
+
+
+def reassign_duplicate_object_ids(boxes: list[dict[str, Any]], clip_id: str,
+                                  frame_index: int) -> int:
+    """Give duplicate IDs fresh values without changing any other box fields."""
+    seen: set[str] = set()
+    used = {str(box.get("object_id", "")) for box in boxes}
+    changed = 0
+    for box in boxes:
+        object_id = str(box.get("object_id", ""))
+        if object_id not in seen:
+            seen.add(object_id)
+            continue
+        # Reserve all existing IDs while finding a new value, including IDs
+        # that appear later in this list.
+        fresh = next_unique_object_id([{"object_id": value} for value in used],
+                                      clip_id, frame_index)
+        box["object_id"] = fresh
+        used.add(fresh)
+        seen.add(fresh)
+        changed += 1
+    return changed
+
+
+def box_iou(first: dict[str, Any], second: dict[str, Any]) -> float:
+    """Compute intersection over union for source-coordinate boxes."""
+    ix1 = max(float(first["x1"]), float(second["x1"]))
+    iy1 = max(float(first["y1"]), float(second["y1"]))
+    ix2 = min(float(first["x2"]), float(second["x2"]))
+    iy2 = min(float(first["y2"]), float(second["y2"]))
+    intersection = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+    area_first = (float(first["x2"]) - float(first["x1"])) * (
+        float(first["y2"]) - float(first["y1"]))
+    area_second = (float(second["x2"]) - float(second["x1"])) * (
+        float(second["y2"]) - float(second["y1"]))
+    union = area_first + area_second - intersection
+    return intersection / union if union > 0 else 0.0
+
+
+def suppress_duplicate_drafts(boxes: list[dict[str, Any]],
+                              iou_threshold: float = 0.9) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Suppress class-agnostic near-duplicate model drafts by confidence."""
+    if not 0.0 <= iou_threshold <= 1.0:
+        raise ValueError("IoU threshold must be between 0 and 1")
+    indexed_drafts = [(i, box) for i, box in enumerate(boxes)
+                      if box.get("label_source") == "model_draft"]
+    accepted: list[tuple[int, dict[str, Any]]] = []
+    suppressed: list[tuple[int, dict[str, Any]]] = []
+    for index, box in sorted(indexed_drafts,
+                             key=lambda item: (-float(item[1].get("confidence", 0.0)), item[0])):
+        if any(box_iou(box, keep) >= iou_threshold for _, keep in accepted):
+            suppressed.append((index, box))
+        else:
+            accepted.append((index, box))
+    retained_indexes = {index for index, _ in accepted}
+    retained = [box for index, box in enumerate(boxes)
+                if box.get("label_source") != "model_draft" or index in retained_indexes]
+    return retained, [box for _, box in sorted(suppressed)]
+
+
+def mark_frame_reviewed(frame: dict[str, Any], reviewed_at: str) -> None:
+    """Mark a user-confirmed frame complete and retain untouched drafts as labels."""
+    for label in frame.get("objects", []):
+        if label.get("label_source") == "model_draft":
+            label["label_source"] = "manual"
+            label["revision_action"] = "kept"
+    frame["reviewed"] = True
+    frame["reviewed_at"] = reviewed_at
 
 
 def load_frame_whitelist(path: Path) -> dict[tuple[str, int], dict[str, str]]:

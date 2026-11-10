@@ -7,6 +7,7 @@ import json
 import sys
 import threading
 import webbrowser
+from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -26,7 +27,9 @@ from roundabout.site_finetune_labels import (  # noqa: E402
     load_frame_whitelist,
     load_label_file,
     mask_outside_polygon,
+    mark_frame_reviewed,
     merge_boxes,
+    next_unique_object_id,
     polygon_from_mask,
     validate_box_in_polygon,
     validate_label_record,
@@ -40,18 +43,18 @@ body{margin:0;background:#15171b;color:#eee;font:15px system-ui}main{width:max-c
 #workspace{display:grid;grid-template-columns:1280px minmax(360px,520px);gap:12px;align-items:start;width:max-content}header,section{background:#20242a;padding:10px;margin-bottom:8px;border-radius:6px}button,select,input{padding:7px;margin:3px;background:#303741;color:#eee;border:1px solid #687080;border-radius:4px}header{width:1812px;box-sizing:border-box;font-size:12px;padding:8px}header button,header select,header input{font-size:12px;padding:4px;margin:2px}.toolbar{display:flex;align-items:center;gap:3px;flex-wrap:nowrap;white-space:nowrap;min-height:32px}.toolbar .spacer{flex:1}.toolbar .save-button{background:#245d37;border-color:#65b87d;font-weight:700;padding:6px 18px;font-size:14px}
 #visualPanel{padding:0;margin:0}#viewport{width:1280px;max-height:75vh;overflow:auto;background:#111}#stage{position:relative;width:100%;aspect-ratio:16/9;background:#333;touch-action:none}#frame{width:100%;height:100%;display:block}#boxes{position:absolute;inset:0;width:100%;height:100%}.box{fill:var(--box-color);fill-opacity:.25;stroke:var(--box-color);stroke-width:2.5;vector-effect:non-scaling-stroke;cursor:move}.box.ignore{fill:#ff9900;stroke:#ffa500}.draft{stroke-dasharray:8 5}.box.active{stroke:#fff;stroke-width:4.5;fill-opacity:.6}.box-tag{font: bold 32px sans-serif;paint-order:stroke;stroke:#111;stroke-width:6px;fill:white;pointer-events:all;cursor:pointer}.handle{fill:#fff;stroke:#111;stroke-width:8;vector-effect:non-scaling-stroke;cursor:nwse-resize}#boxes.hide-numbers .box-tag{display:none}#boxes.hide-bounds .box.saved,#boxes.hide-bounds .handle{display:none}#objectPanel{max-height:75vh;overflow:auto;margin:0}#list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.item{display:flex;flex-wrap:wrap;align-items:center;align-content:flex-start;gap:1px;min-width:0;background:#303741;padding:3px;border:2px solid transparent;scroll-margin:12px;font-size:11px;overflow:hidden}.item.active{border-color:#fff;background:#17404a}.item input[type=number]{width:43px!important;box-sizing:border-box;padding:2px;margin:1px;font-size:10px}.item input:not([type=number]){max-width:110px;box-sizing:border-box;padding:3px;margin:1px;font-size:10px}.item input[type=checkbox]{width:14px;height:14px}.item button,.item select{box-sizing:border-box;max-width:100px;padding:3px;margin:1px;font-size:10px}.swatch{display:inline-block;width:10px;height:10px;margin-right:2px;border-radius:2px;vertical-align:middle}.draw{stroke:#ff00ff;stroke-width:5;fill:#ff00ff30;vector-effect:non-scaling-stroke}
 </style><main><header><b>TASK-009 학습 라벨 편집기</b>
-<div class="toolbar"><button onclick="move(-1)">이전</button><button onclick="move(1)">다음</button><span id="where"></span>
+<div class="toolbar"><button onclick="move(-1)">이전</button><button onclick="move(1)">다음</button><span id="where"></span><span id="reviewProgress"></span>
 <button onclick="setZoom(1)">화면 맞춤</button><button onclick="setZoom(1.5)">확대 150%</button><button onclick="setZoom(2)">확대 200%</button><button onclick="setZoom(zoom/1.25)">−</button><button onclick="setZoom(zoom*1.25)">+</button><span id="zoomLabel">100%</span><span class="spacer"></span><button class="save-button" onclick="saveAll()">저장</button><span id="status"></span></div>
 <div class="toolbar"><button onclick="stepObject(-1)">이전 객체</button><button onclick="stepObject(1)">다음 객체</button><span id="objectWhere"></span><button onclick="clearActiveObject()">선택 해제</button>
 <label><input type="checkbox" id="showNumbers" checked onchange="toggleOverlay()"> 번호</label><label><input type="checkbox" id="showBounds" checked onchange="toggleOverlay()"> 경계</label><span>모서리 드래그: 크기 조정 · 박스 안 드래그: 이동</span>
 <select id="newClass"><option>person</option><option>bicycle</option><option>car</option><option>motorcycle</option><option>bus</option><option>truck</option></select><label><input type="checkbox" id="newIgnore"> ignore</label><input id="newAttrs" placeholder="umbrella;pm;truncated">
-<button onclick="mergeSelected('motorcycle')">합치기 → motorcycle</button><button onclick="mergeSelected('bicycle')">→ bicycle</button></div></header>
+<button onclick="mergeSelected('motorcycle')">합치기 → motorcycle</button><button onclick="mergeSelected('bicycle')">→ bicycle</button><button onclick="completeReview()">검토 완료</button></div></header>
 <div id="workspace"><section id="visualPanel"><div id="viewport"><div id="stage"><img id="frame"><svg id="boxes" viewBox="0 0 3840 2160" preserveAspectRatio="none" onpointerdown="down(event)" onpointermove="drag(event)" onpointerup="up(event)"><rect id="newBox" class="draw" visibility="hidden"/></svg></div></div></section>
 <section id="objectPanel"><b>객체 목록</b><div id="list"></div></section></div></main>
 <script>
 let state=null,idx=0,start=null,editDrag=null,selected=new Set(),activeId=null,zoom=1;const $=id=>document.getElementById(id);const classIds={person:0,bicycle:1,car:2,motorcycle:3,bus:5,truck:7};
 async function api(path,body){let r=await fetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});let j=await r.json();if(!r.ok)throw Error(j.error||r.statusText);return j}
-async function load(){try{state=await api('/api/state?index='+idx);idx=state.index;selected.clear();activeId=null;$('where').textContent=`${idx+1}/${state.count} · ${state.clip_id} frame ${state.frame_index} (${state.split})`;$('frame').src='/api/image?index='+idx;render();$('status').textContent=''}catch(e){$('status').textContent=e.message}}
+async function load(){try{state=await api('/api/state?index='+idx);idx=state.index;selected.clear();activeId=null;$('where').textContent=`${idx+1}/${state.count} · ${state.clip_id} frame ${state.frame_index} (${state.split})`;$('reviewProgress').textContent=`검토 완료 ${state.review_count}/${state.count}`;$('frame').src='/api/image?index='+idx;render();$('status').textContent=state.reviewed?'검토 완료됨':''}catch(e){$('status').textContent=e.message}}
 function setZoom(value){zoom=Math.max(1,Math.min(3,value));const width=Math.min(1280,$('viewport').clientWidth)*zoom;$('stage').style.width=width+'px';$('zoomLabel').textContent=Math.round(zoom*100)+'%'}
 function toggleOverlay(){$('boxes').classList.toggle('hide-numbers',!$('showNumbers').checked);$('boxes').classList.toggle('hide-bounds',!$('showBounds').checked)}
 function activeIndex(){return state.boxes.findIndex(b=>b.object_id===activeId)}
@@ -70,6 +73,7 @@ async function up(e){if(editDrag){let d=editDrag,b=draggedBox(point(e)),old=d.in
 async function mergeSelected(cls){await action({action:'merge',object_ids:[...selected],class_name:cls});selected.clear()}
 async function move(n){if(!await saveAll())return;idx=Math.max(0,Math.min(state.count-1,idx+n));await load()}
 async function saveAll(){try{await api('/api/action',{action:'save',index:idx});$('status').textContent='저장 완료';return true}catch(e){$('status').textContent='저장 실패: '+e.message;return false}}
+async function completeReview(){try{state=await api('/api/action',{action:'review',index:idx});render();$('reviewProgress').textContent=`검토 완료 ${state.review_count}/${state.count}`;$('status').textContent='검토 완료 저장됨'}catch(e){$('status').textContent='검토 완료 저장 실패: '+e.message}}
 setZoom(1);toggleOverlay();load();
 </script>"""
 
@@ -122,6 +126,20 @@ class LabelState:
             "width": 3840, "height": 2160, "objects": [],
         })["objects"]
 
+    def review_count(self) -> int:
+        return sum(
+            self.labels["frames"].get(self.key(clip, frame), {}).get("reviewed") is True
+            for clip, frame in self.frames
+        )
+
+    def save(self) -> None:
+        self.labels["draft_only"] = self.review_count() == 0
+        self.labels_path.parent.mkdir(parents=True, exist_ok=True)
+        self.labels_path.write_text(
+            json.dumps(self.labels, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
 
 class AnnotationServer(ThreadingHTTPServer):
     def __init__(self, address, state: LabelState):
@@ -166,6 +184,9 @@ class AnnotationHandler(BaseHTTPRequestHandler):
                     "index": index, "count": len(self.server.state.frames),
                     "clip_id": clip, "frame_index": frame, "split": row["split"],
                     "boxes": boxes,
+                    "reviewed": self.server.state.labels["frames"].get(
+                        self.server.state.key(clip, frame), {}).get("reviewed") is True,
+                    "review_count": self.server.state.review_count(),
                 })
             if parsed.path == "/api/image":
                 image = mask_outside_polygon(
@@ -190,7 +211,7 @@ class AnnotationHandler(BaseHTTPRequestHandler):
             if action == "add":
                 box = payload["box"]
                 record = {
-                    "object_id": f"{clip}_{frame}_{len(boxes)+1:02d}",
+                    "object_id": next_unique_object_id(boxes, clip, frame),
                     **{k: float(box[k]) for k in ("x1", "y1", "x2", "y2")},
                     "class_name": payload["class_name"],
                     "class_id": CLASS_IDS[payload["class_name"]],
@@ -219,16 +240,25 @@ class AnnotationHandler(BaseHTTPRequestHandler):
                 self.server.state.labels["frames"][self.server.state.key(clip, frame)]["objects"] = updated
                 boxes = updated
             elif action == "save":
-                self.server.state.labels_path.parent.mkdir(parents=True, exist_ok=True)
-                self.server.state.labels_path.write_text(
-                    json.dumps(self.server.state.labels, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
+                with self.server.state.lock:
+                    self.server.state.save()
+            elif action == "review":
+                with self.server.state.lock:
+                    key = self.server.state.key(clip, frame)
+                    frame_data = self.server.state.labels["frames"].setdefault(
+                        key, {"clip_id": clip, "frame_index": frame, "split": row["split"],
+                              "width": 3840, "height": 2160, "objects": boxes})
+                    mark_frame_reviewed(
+                        frame_data, datetime.now().astimezone().isoformat(timespec="seconds"))
+                    self.server.state.save()
             else:
                 raise ValueError("unknown action")
             return self.send_json(200, {
                 "index": index, "count": len(self.server.state.frames),
                 "clip_id": clip, "frame_index": frame, "split": row["split"], "boxes": boxes,
+                "reviewed": self.server.state.labels["frames"].get(
+                    self.server.state.key(clip, frame), {}).get("reviewed") is True,
+                "review_count": self.server.state.review_count(),
             })
         except Exception as exc:
             return self.send_json(400, {"error": str(exc)})
